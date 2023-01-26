@@ -1,19 +1,65 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"io"
 
-// Wrap is deprecated use fmt.Errorf() instead
+	"github.com/mailgun/errors/callstack"
+)
+
+// Wrap wraps the error and attaches stack information to the error
 func Wrap(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
-	return fmt.Errorf("%s: %w", msg, err)
+	return &wrappedError{
+		stack:   callstack.New(1),
+		wrapped: err,
+		msg:     msg,
+	}
 }
 
-// Wrapf is deprecated use fmt.Errorf() instead
-func Wrapf(err error, msg string, a ...any) error {
+// Wrapf is identical to Wrap but formats the error before wrapping.
+func Wrapf(err error, format string, a ...any) error {
 	if err == nil {
 		return nil
 	}
-	return fmt.Errorf("%s: %w", fmt.Sprintf(msg, a...), err)
+	return &wrappedError{
+		stack:   callstack.New(1),
+		wrapped: err,
+		msg:     fmt.Sprintf(format, a...),
+	}
+}
+
+type wrappedError struct {
+	msg     string
+	wrapped error
+	stack   *callstack.CallStack
+}
+
+func (e *wrappedError) Unwrap() error {
+	return e.wrapped
+}
+
+func (e *wrappedError) Is(target error) bool {
+	_, ok := target.(*wrappedError)
+	return ok
+}
+
+func (e *wrappedError) Error() string {
+	if e.msg == "" {
+		return e.wrapped.Error()
+	}
+	return e.msg + ": " + e.wrapped.Error()
+}
+
+func (e *wrappedError) StackTrace() callstack.StackTrace {
+	if child, ok := e.wrapped.(callstack.HasStackTrace); ok {
+		return child.StackTrace()
+	}
+	return e.stack.StackTrace()
+}
+
+func (e *wrappedError) Format(s fmt.State, verb rune) {
+	_, _ = io.WriteString(s, e.Error())
 }

@@ -124,13 +124,18 @@ func (c *withFields) Fields() map[string]interface{} {
 func (c *withFields) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		if c.msg == "" {
-			_, _ = fmt.Fprintf(s, "%+v (%s)", c.Unwrap(), c.FormatFields())
-		} else {
+		if s.Flag('+') {
+			if c.msg == "" {
+				_, _ = fmt.Fprintf(s, "%+v (%s)", c.Unwrap(), c.FormatFields())
+				return
+			}
 			_, _ = fmt.Fprintf(s, "%s: %+v (%s)", c.msg, c.Unwrap(), c.FormatFields())
+			return
 		}
+		fallthrough
 	case 's', 'q':
 		_, _ = io.WriteString(s, c.Error())
+		return
 	}
 }
 
@@ -151,11 +156,23 @@ func (c *withFields) FormatFields() string {
 // ToMap Returns the context for the underlying error as map[string]interface{}
 // If no context is available returns nil
 func ToMap(err error) map[string]interface{} {
-	var result map[string]interface{}
+	result := map[string]interface{}{
+		"excValue": err.Error(),
+		"excType":  fmt.Sprintf("%T", Unwrap(err)),
+	}
+
+	// Find any errors with StackTrace information if available
+	var stack callstack.HasStackTrace
+	if errors.As(err, &stack) {
+		trace := stack.StackTrace()
+		caller := callstack.GetLastFrame(trace)
+		result["excFuncName"] = caller.Func
+		result["excLineNum"] = caller.LineNo
+		result["excFileName"] = caller.File
+	}
 
 	if child, ok := err.(HasFields); ok {
 		// Append the context map to our results
-		result = make(map[string]interface{})
 		for key, value := range child.Fields() {
 			result[key] = value
 		}
@@ -173,9 +190,10 @@ func ToLogrus(err error) logrus.Fields {
 		"excType":  fmt.Sprintf("%T", Unwrap(err)),
 	}
 
-	// Add the stack info if provided
-	if cast, ok := err.(callstack.HasStackTrace); ok {
-		trace := cast.StackTrace()
+	// Find any errors with StackTrace information if available
+	var stack callstack.HasStackTrace
+	if errors.As(err, &stack) {
+		trace := stack.StackTrace()
 		caller := callstack.GetLastFrame(trace)
 		result["excFuncName"] = caller.Func
 		result["excLineNum"] = caller.LineNo

@@ -27,7 +27,14 @@ func TestWithFields(t *testing.T) {
 	t.Run("Extract fields as a normal map", func(t *testing.T) {
 		m := errors.ToMap(wrap)
 		require.NotNil(t, m)
+
 		assert.Equal(t, "value1", m["key1"])
+		assert.Regexp(t, ".*/fields_test.go", m["excFileName"])
+		assert.Regexp(t, "\\d*", m["excLineNum"])
+		assert.Equal(t, "message: query error", m["excValue"])
+		assert.Equal(t, "errors_test.TestWithFields", m["excFuncName"])
+		assert.Equal(t, "*errors_test.TestError", m["excType"])
+		assert.Len(t, m, 6)
 	})
 
 	t.Run("Can use errors.Is() from std `errors` package", func(t *testing.T) {
@@ -60,11 +67,38 @@ func TestWithFields(t *testing.T) {
 		// OUTPUT: time="2023-01-26T10:37:48-05:00" level=info msg="test logrus fields"
 		//   excFileName=errors/fields_test.go excFuncName=errors_test.TestWithFields
 		//   excLineNum=18 excType="*errors_test.TestError" excValue="message: query error" key1=value1
-		t.Log(b.String())
+		// t.Log(b.String())
 
 		assert.Equal(t, "message: query error", wrap.Error())
 		out := fmt.Sprintf("%+v", wrap)
 		assert.True(t, strings.Contains(out, `message: query error (key1=value1)`))
+	})
+
+	t.Run("ToLogrus() should extract the error with StackTrace() from the chain", func(t *testing.T) {
+		// This error has no  StackTrace() method
+		err := fmt.Errorf("I have no stack trace: %w", wrap)
+		// ToLogrus() should find the wrapped error in the chain that does have StackTrace() method.
+		f := errors.ToLogrus(err)
+		// t.Log(f)
+
+		assert.Regexp(t, ".*/fields_test.go", f["excFileName"])
+		assert.Regexp(t, "\\d*", f["excLineNum"])
+		assert.Equal(t, "I have no stack trace: message: query error", f["excValue"])
+		assert.Equal(t, "errors_test.TestWithFields", f["excFuncName"])
+		assert.Equal(t, "*errors.withFields", f["excType"])
+		assert.Len(t, f, 5)
+
+		require.NotNil(t, f)
+	})
+
+	t.Run("Wrap() should return nil, if error is nil", func(t *testing.T) {
+		got := errors.WithFields{"some": "context"}.Wrap(nil, "no error")
+		assert.Nil(t, got)
+	})
+
+	t.Run("Wrapf() should return nil, if error is nil", func(t *testing.T) {
+		got := errors.WithFields{"some": "context"}.Wrapf(nil, "no '%d' error", 1)
+		assert.Nil(t, got)
 	})
 }
 
@@ -72,13 +106,7 @@ func TestErrorf(t *testing.T) {
 	err := errors.New("this is an error")
 	wrap := errors.WithFields{"key1": "value1", "key2": "value2"}.Wrap(err, "message")
 	err = fmt.Errorf("wrapped: %w", wrap)
-
-	// Output: 'final: wrapped: message: this is an error (key1=value1, key2=value2)'
-	out := fmt.Sprintf("final: %s", err)
-	t.Log(out)
-	assert.Contains(t, out, "final: wrapped: message: this is an error")
-	assert.Contains(t, out, "key1=value1")
-	assert.Contains(t, out, "key2=value2")
+	assert.Equal(t, fmt.Sprintf("%s", err), "wrapped: message: this is an error")
 }
 
 func TestNestedWithFields(t *testing.T) {
@@ -106,18 +134,20 @@ func TestNestedWithFields(t *testing.T) {
 	})
 }
 
-func TestFmtDirectives(t *testing.T) {
+func TestWithFieldsFmtDirectives(t *testing.T) {
 	t.Run("Wrap() with a message", func(t *testing.T) {
 		err := errors.WithFields{"key1": "value1"}.Wrap(errors.New("error"), "shit happened")
-		assert.Equal(t, "value: shit happened: error (key1=value1)", fmt.Sprintf("value: %v", err))
-		assert.Equal(t, "value+: shit happened: error (key1=value1)", fmt.Sprintf("value+: %+v", err))
-		assert.Equal(t, "type: *errors.withFields", fmt.Sprintf("type: %T", err))
+		assert.Equal(t, "shit happened: error", fmt.Sprintf("%s", err))
+		assert.Equal(t, "shit happened: error", fmt.Sprintf("%v", err))
+		assert.Equal(t, "shit happened: error (key1=value1)", fmt.Sprintf("%+v", err))
+		assert.Equal(t, "*errors.withFields", fmt.Sprintf("%T", err))
 	})
 
 	t.Run("Wrap() without a message", func(t *testing.T) {
 		err := errors.WithFields{"key1": "value1"}.Wrap(errors.New("error"), "")
-		assert.Equal(t, "value: error (key1=value1)", fmt.Sprintf("value: %v", err))
-		assert.Equal(t, "value+: error (key1=value1)", fmt.Sprintf("value+: %+v", err))
-		assert.Equal(t, "type: *errors.withFields", fmt.Sprintf("type: %T", err))
+		assert.Equal(t, "error", fmt.Sprintf("%s", err))
+		assert.Equal(t, "error", fmt.Sprintf("%v", err))
+		assert.Equal(t, "error (key1=value1)", fmt.Sprintf("%+v", err))
+		assert.Equal(t, "*errors.withFields", fmt.Sprintf("%T", err))
 	})
 }
