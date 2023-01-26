@@ -53,6 +53,20 @@ func (f WithFields) Wrap(err error, msg string) error {
 	}
 }
 
+// WithStack returns an error annotating err with a stack trace
+// at the point WithStack is called
+// If err is nil, WithStack returns nil.
+func (f WithFields) WithStack(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &withFields{
+		stack:   callstack.New(1),
+		fields:  f,
+		wrapped: err,
+	}
+}
+
 func (f WithFields) Error(msg string) error {
 	return &withFields{
 		stack:   callstack.New(1),

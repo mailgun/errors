@@ -3,6 +3,7 @@ package errors_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -14,11 +15,11 @@ import (
 )
 
 func TestWithFields(t *testing.T) {
-	err := &TestError{Msg: "query error"}
+	err := &ErrTest{Msg: "query error"}
 	wrap := errors.WithFields{"key1": "value1"}.Wrap(err, "message")
 	assert.NotNil(t, wrap)
 
-	t.Run("Unwrap should return TestError", func(t *testing.T) {
+	t.Run("Unwrap should return ErrTest", func(t *testing.T) {
 		u := errors.Unwrap(wrap)
 		require.NotNil(t, u)
 		assert.Equal(t, "query error", u.Error())
@@ -33,17 +34,17 @@ func TestWithFields(t *testing.T) {
 		assert.Regexp(t, "\\d*", m["excLineNum"])
 		assert.Equal(t, "message: query error", m["excValue"])
 		assert.Equal(t, "errors_test.TestWithFields", m["excFuncName"])
-		assert.Equal(t, "*errors_test.TestError", m["excType"])
+		assert.Equal(t, "*errors_test.ErrTest", m["excType"])
 		assert.Len(t, m, 6)
 	})
 
 	t.Run("Can use errors.Is() from std `errors` package", func(t *testing.T) {
-		assert.True(t, errors.Is(err, &TestError{}))
-		assert.True(t, errors.Is(wrap, &TestError{}))
+		assert.True(t, errors.Is(err, &ErrTest{}))
+		assert.True(t, errors.Is(wrap, &ErrTest{}))
 	})
 
 	t.Run("Can use errors.As() from std `errors` package", func(t *testing.T) {
-		myErr := &TestError{}
+		myErr := &ErrTest{}
 		assert.True(t, errors.As(wrap, &myErr))
 		assert.Equal(t, myErr.Msg, "query error")
 	})
@@ -58,7 +59,7 @@ func TestWithFields(t *testing.T) {
 		logrus.SetOutput(os.Stdout)
 		assert.Contains(t, b.String(), "test logrus fields")
 		assert.Contains(t, b.String(), `excValue="message: query error"`)
-		assert.Contains(t, b.String(), `excType="*errors_test.TestError"`)
+		assert.Contains(t, b.String(), `excType="*errors_test.ErrTest"`)
 		assert.Contains(t, b.String(), "key1=value1")
 		assert.Contains(t, b.String(), "excFuncName=errors_test.TestWithFields")
 		assert.Regexp(t, "excFileName=.*/fields_test.go", b.String())
@@ -66,7 +67,7 @@ func TestWithFields(t *testing.T) {
 
 		// OUTPUT: time="2023-01-26T10:37:48-05:00" level=info msg="test logrus fields"
 		//   excFileName=errors/fields_test.go excFuncName=errors_test.TestWithFields
-		//   excLineNum=18 excType="*errors_test.TestError" excValue="message: query error" key1=value1
+		//   excLineNum=18 excType="*errors_test.ErrTest" excValue="message: query error" key1=value1
 		// t.Log(b.String())
 
 		assert.Equal(t, "message: query error", wrap.Error())
@@ -150,4 +151,45 @@ func TestWithFieldsFmtDirectives(t *testing.T) {
 		assert.Equal(t, "error (key1=value1)", fmt.Sprintf("%+v", err))
 		assert.Equal(t, "*errors.withFields", fmt.Sprintf("%T", err))
 	})
+}
+
+func TestWithFieldsErrorValue(t *testing.T) {
+	err := io.EOF
+	wrap := errors.WithFields{"key1": "value1"}.Wrap(err, "message")
+	assert.True(t, errors.Is(wrap, io.EOF))
+}
+
+func TestHasFields(t *testing.T) {
+	hf := &ErrHasFields{M: "error", F: map[string]interface{}{"file": "errors.go"}}
+	err := errors.WithFields{"key1": "value1"}.Wrap(hf, "")
+	m := errors.ToMap(err)
+	require.NotNil(t, m)
+	assert.Equal(t, "value1", m["key1"])
+	assert.Equal(t, "errors.go", m["file"])
+}
+
+func TestWithFieldsError(t *testing.T) {
+	t.Run("WithFields.Error() should create a new error", func(t *testing.T) {
+		err := errors.WithFields{"key1": "value1"}.Error("error")
+		m := errors.ToMap(err)
+		require.NotNil(t, m)
+		assert.Equal(t, "value1", m["key1"])
+		assert.Equal(t, "error", err.Error())
+	})
+
+	t.Run("WithFields.Errorf() should create a new error", func(t *testing.T) {
+		err := errors.WithFields{"key1": "value1"}.Errorf("error '%d'", 1)
+		m := errors.ToMap(err)
+		require.NotNil(t, m)
+		assert.Equal(t, "value1", m["key1"])
+		assert.Equal(t, "error '1'", err.Error())
+	})
+}
+
+func TestWithFieldsWithStack(t *testing.T) {
+	err := errors.WithFields{"key1": "value1"}.WithStack(io.EOF)
+	m := errors.ToMap(err)
+	require.NotNil(t, m)
+	assert.Equal(t, "value1", m["key1"])
+	assert.Equal(t, io.EOF.Error(), err.Error())
 }

@@ -15,12 +15,12 @@ import (
 func TestWrapWithFieldsAndWithStack(t *testing.T) {
 	// NOTE: The stack from StackTrace() should report this line
 	// not the WithFields line below
-	s := errors.WithStack(&TestError{Msg: "error"})
+	s := errors.WithStack(&ErrTest{Msg: "error"})
 
 	err := errors.WithFields{"key1": "value1"}.Wrap(s, "context")
 
-	myErr := &TestError{}
-	assert.True(t, errors.Is(err, &TestError{}))
+	myErr := &ErrTest{}
+	assert.True(t, errors.Is(err, &ErrTest{}))
 	assert.True(t, errors.As(err, &myErr))
 	assert.Equal(t, myErr.Msg, "error")
 	assert.Equal(t, "context: error", err.Error())
@@ -53,14 +53,14 @@ func TestWithStack(t *testing.T) {
 }
 
 func TestWithStackWrapped(t *testing.T) {
-	err := errors.WithStack(&TestError{Msg: "query error"})
+	err := errors.WithStack(&ErrTest{Msg: "query error"})
 	err = fmt.Errorf("wrapped: %w", err)
 
 	// Can use errors.Is() from std `errors` package
-	assert.True(t, errors.Is(err, &TestError{}))
+	assert.True(t, errors.Is(err, &ErrTest{}))
 
 	// Can use errors.As() from std `errors` package
-	myErr := &TestError{}
+	myErr := &ErrTest{}
 	assert.True(t, errors.As(err, &myErr))
 	assert.Equal(t, myErr.Msg, "query error")
 }

@@ -1,27 +1,54 @@
 # Errors
-A convenience package to add additional context fields to errors without the need to
-implement a custom error type each time you return an error. 
+A modern error handling package to add additional structured fields to errors. This allows you to keep the
+[only handle errors once rule](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) while not losing context where the error occurred.
 
-`errors.Wrap()` includes a stack trace so logging can report the exact location where
-the error occurred.
-`errors.WithStack()` for when you don't need a message, just a stack trace to where
-the error occured.
-`errors.WithFields{}.Wrap()` to attach additional fields to the error so when we log
-the error up the call stack, we have as much information as possible.
+* `errors.Wrap(err, "while reading")` includes a stack trace so logging can report the exact location where
+  the error occurred. (you can also call `Wrapf()`)
+* `errors.WithStack(err)` for when you don't need a message, just a stack trace to where the error occurred.
+* `errors.WithFields{"fileName": fileName}.Wrap(err, "while reading")` Attach additional fields to the error and a stack
+  trace to give structured logging as much context to the error as possible. (you can also call `Wrapf()`)
+* `errors.WithFields{"fileName": fileName}.WithStack(err)` for when you don't need a message, just a stack
+  trace and some fields attached.
+* `errors.WithFields{"fileName": fileName}.Error("while reading")` when you want to create a string error with
+  some fields attached. (you can also call `Errorf()`)
 
-Provides pass through access to the standard `errors.Is()`, `errors.As()`,
-`errors.Unwrap()` so you don't need to import this package and the standard 
-error package.
-
+### Extract structured data from wrapped errors
 Convenience functions to extract all stack and field information from the error.
-`errors.ToLogrus()` and `errors.ToMap()`
- 
+* `errors.ToLogrus() logrus.Fields`
+* `errors.ToMap() map[string]interface{}`
+
+### Example
+```go
+err := io.EOF
+err = errors.WithFields{"fileName": "file.txt"}.Wrap(err, "while reading")
+m := errors.ToMap(err)
+fmt.Printf("%#v\n", m)
+// OUTPUT
+// map[string]interface {}{
+//   "excFileName":"/path/to/wrap_test.go",
+//   "excFuncName":"my_package.ReadAFile",
+//   "excLineNum":42,
+//   "excType":"*errors.errorString",
+//   "excValue":"while reading: EOF",
+//   "fileName":"file.txt"
+//  }
+```
+
+## Convenience to std error library methods
+Provides pass through access to the standard `errors.Is()`, `errors.As()`, `errors.Unwrap()` so you don't need to
+import this package and the standard error package.
+
+## Supported by internal tooling
+If you are working at mailgun and are using scaffold; using `logrus.WithError(err)` will cause logrus to 
+automatically retrieve the fields attached to the error and index them into our logging system as separate
+searchable fields.
+
 ## Adding structured fields to an error
 Wraps the original error while providing structured field data
 ```go
 _, err := ioutil.ReadFile(fileName)
 if err != nil {
-        return errors.WithFields{"file": fileName}.Wrap(err, "read failed")
+        return errors.WithFields{"file": fileName}.Wrap(err, "while reading")
 }
 ```
 
@@ -32,31 +59,21 @@ systems
 // Pass to logrus as structured logging
 logrus.WithFields(errors.ToLogrus(err)).Error("open file error")
 ```
-Stack information on the source of the error is also included
-```go
-context := errors.ToMap(err)
-context == map[string]interface{}{
-      "file": "my-file.txt",
-      "excValue": "open file error",
-	  "excType": "*my_package.TestError"
-      "excFuncName": "my_package.TestFunction"
-      "excFileName": "/path/to/example.go"
-}
-```
 
-## Can be used with standard errors.Unwrap() and errors.Is() and errors.As()
-Errors wrapped with `errors.WithFields{}` are compatible with standard library introspection functions
+## Support for standard golang introspection functions
+Errors wrapped with `errors.WithFields{}` are compatible with standard library introspection functions `errors.Unwrap()`,
+`errors.Is()` and `errors.As()`
 ```go
-var ErrQuery := errors.New("query error")
+ErrQuery := errors.New("query error")
 wrap := errors.WithFields{"key1": "value1"}.Wrap(err, "message")
 errors.Is(wrap, ErrQuery) // == true
 ```
 
 ## Proper Usage
-The fields wrapped by `errors.WithFields{}` is not intended to be used to by code to decide how an error should be 
-handled. It is a convenience where the failure is well known, but the context is dynamic. In other words, you know the
-database returned an unrecoverable query error, but creating a new error type with the details of each query
-error is overkill **ErrorFetchPage{}, ErrorFetchAll{}, ErrorFetchAuthor{}, etc...**
+The fields wrapped by `errors.WithFields{}` are not intended to be used to by code to decide how an error should be 
+handled. It is intended as a convenience where the failure is well known, but the context is dynamic. In other words,
+you know the database returned an unrecoverable query error, but you want to attach localized context information
+to the error.
 
 As an example
 ```go
@@ -74,9 +91,9 @@ func (r *Repository) FetchAuthor(customerID, isbn string) (Author, error) {
     return author, nil
 }
 ```
-Now you can easily search your structured logs for errors related to a customer.
+Now you can easily search your structured logs for errors related to `customer.id`.
 
-You should continue to create and inspect error types
+You should continue to create and inspect custom error types
 ```go
 
 type ErrAuthorNotFound struct {
@@ -96,122 +113,16 @@ func main() {
     r := Repository{}
     author, err := r.FetchAuthor("isbn-213f-23422f52356")
     if err != nil {
-        // Fetch the original Cause() and determine if the error is recoverable
+        // Fetch the original and determine if the error is recoverable
         if error.Is(err, &ErrAuthorNotFound{}) {
-                author, err := r.AddBook("isbn-213f-23422f52356", "charles", "darwin")
+            author, err := r.AddBook("isbn-213f-23422f52356", "charles", "darwin")
         }
         if err != nil {
-                logrus.WithFields(errors.ToLogrus(err)).Errorf("while fetching author - %s", err)
-                os.Exit(1)
+            logrus.WithFields(errors.ToLogrus(err)).
+				WithError(err).Error("while fetching author")
+            os.Exit(1)
         }
     }
     fmt.Printf("Author %+v\n", author)
-}
-```
-
-## Fields for concrete error types
-If the error implements the `errors.HasFields` interface the context can be retrieved
-```go
-fields, ok := err.(errors.HasFields)
-if ok {
-    fmt.Println(fields.Fields())
-}
-```
-
-This makes it easy for error types to provide their context information.
- ```go
-type ErrBookNotFound struct {
-    ISBN string
-}
-// Implements the `HasFields` interface
-func (e *ErrBookNotFound) func Fields() map[string]interface{} {
-    return map[string]interface{}{
-        "isbn": e.ISBN,
-    }
- }
-```
-Now we can create the error and logrus knows how to retrieve the context
- 
-```go
-func (* Repository) FetchBook(isbn string) (*Book, error) {
-    var book Book
-    err := r.db.Query("SELECT * FROM books WHERE isbn = ?").One(&book)
-    if err != nil {
-        return nil, ErrBookNotFound{ISBN: isbn}
-    }
-}
-
-func main() {
-    r := Repository{}
-    book, err := r.FetchBook("isbn-213f-23422f52356")
-    if err != nil {
-        logrus.WithFields(errors.ToLogrus(err)).Errorf("while fetching book - %s", err)
-        os.Exit(1)
-    }
-    fmt.Printf("Book %+v\n", book)
-}
-```
-
-
-## A Complete example
-The following is a complete example using
-http://github.com/mailgun/logrus-hooks/kafkahook to marshal the context into ES
-fields.
-
-```go
-package main
-
-import (
-    "log"
-    "io/ioutil"
-
-    "github.com/mailgun/holster/v4/errors"
-    "github.com/mailgun/logrus-hooks/kafkahook"
-    "github.com/sirupsen/logrus"
-)
-
-func OpenWithError(fileName string) error {
-    _, err := ioutil.ReadFile(fileName)
-    if err != nil {
-            // pass the filename up via the error context
-            return errors.WithFields{
-                "file": fileName,
-            }.Wrap(err, "read failed")
-    }
-    return nil
-}
-
-func main() {
-    // Init the kafka hook logger
-    hook, err := kafkahook.New(kafkahook.Config{
-        Endpoints: []string{"kafka-n01", "kafka-n02"},
-        Topic:     "udplog",
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Add the hook to logrus
-    logrus.AddHook(hook)
-
-    // Create an error and log it
-    if err := OpenWithError("/tmp/non-existant.file"); err != nil {
-        // This log line will show up in ES with the additional fields
-        //
-        // excText: "read failed"
-        // excValue: "read failed: open /tmp/non-existant.file: no such file or directory"
-        // excType: "*errors.WithFields"
-        // filename: "/src/to/main.go"
-        // funcName: "main()"
-        // lineno: 25
-        // context.file: "/tmp/non-existant.file"
-        // context.domain.id: "some-id"
-        // context.foo: "bar"
-        logrus.WithFields(logrus.Fields{
-            "domain.id": "some-id",
-            "foo": "bar",
-            "err": err,
-        }).Error("log messge")
-    }
 }
 ```
