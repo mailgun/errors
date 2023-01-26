@@ -3,14 +3,14 @@ A modern error handling package to add additional structured fields to errors. T
 [only handle errors once rule](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) while not losing context where the error occurred.
 
 * `errors.Wrap(err, "while reading")` includes a stack trace so logging can report the exact location where
-  the error occurred. (you can also call `Wrapf()`)
+  the error occurred. *You can also call `Wrapf()`*
 * `errors.WithStack(err)` for when you don't need a message, just a stack trace to where the error occurred.
 * `errors.WithFields{"fileName": fileName}.Wrap(err, "while reading")` Attach additional fields to the error and a stack
-  trace to give structured logging as much context to the error as possible. (you can also call `Wrapf()`)
+  trace to give structured logging as much context to the error as possible. *You can also call `Wrapf()`*
 * `errors.WithFields{"fileName": fileName}.WithStack(err)` for when you don't need a message, just a stack
   trace and some fields attached.
 * `errors.WithFields{"fileName": fileName}.Error("while reading")` when you want to create a string error with
-  some fields attached. (you can also call `Errorf()`)
+  some fields attached. *You can also call `Errorf()`*
 
 ### Extract structured data from wrapped errors
 Convenience functions to extract all stack and field information from the error.
@@ -42,6 +42,10 @@ import this package and the standard error package.
 If you are working at mailgun and are using scaffold; using `logrus.WithError(err)` will cause logrus to 
 automatically retrieve the fields attached to the error and index them into our logging system as separate
 searchable fields.
+
+## Perfect for passing additional information to http handler middleware
+If you have custom http middleware for handling unhandled errors, this is an excellent way
+to easily pass additional information about the request up to the error handling middleware.
 
 ## Adding structured fields to an error
 Wraps the original error while providing structured field data
