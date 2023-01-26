@@ -31,9 +31,9 @@ func (w *withStack) Is(target error) bool {
 	return ok
 }
 
-func (w *withStack) Context() map[string]interface{} {
+func (w *withStack) Fields() map[string]interface{} {
 	if child, ok := w.error.(HasFields); ok {
-		return child.Context()
+		return child.Fields()
 	}
 	return nil
 }

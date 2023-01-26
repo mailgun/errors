@@ -39,41 +39,42 @@ context == map[string]interface{}{
       "file": "my-file.txt",
       "excValue": "open file error",
 	  "excType": "*my_package.TestError"
-      "go-line": 146,
-      "go-file": "with_context_example.go"
+      "excFuncName": "my_package.TestFunction"
+      "excFileName": "/path/to/example.go"
 }
 ```
 
 ## Can be used with standard errors.Unwrap() and errors.Is() and errors.As()
-Errors wrapped with `errors.WithContext{}` are compatible with standard library introspection functions
+Errors wrapped with `errors.WithFields{}` are compatible with standard library introspection functions
 ```go
 var ErrQuery := errors.New("query error")
-wrap := errors.WithContext{"key1": "value1"}.Wrap(err, "message")
+wrap := errors.WithFields{"key1": "value1"}.Wrap(err, "message")
 errors.Is(wrap, ErrQuery) // == true
 ```
 
 ## Proper Usage
-The context wrapped by `errors.WithContext{}` is not intended to be used to by code to decide how an error should be 
+The fields wrapped by `errors.WithFields{}` is not intended to be used to by code to decide how an error should be 
 handled. It is a convenience where the failure is well known, but the context is dynamic. In other words, you know the
 database returned an unrecoverable query error, but creating a new error type with the details of each query
 error is overkill **ErrorFetchPage{}, ErrorFetchAll{}, ErrorFetchAuthor{}, etc...**
 
 As an example
 ```go
-func (r *Repository) FetchAuthor(isbn string) (Author, error) {
+func (r *Repository) FetchAuthor(customerID, isbn string) (Author, error) {
     // Returns ErrorNotFound{} if not exist
     book, err := r.fetchBook(isbn)
     if err != nil {
-        return nil, errors.WithContext{"isbn": isbn}.Wrap(err, "while fetching book")
+        return nil, errors.WithFields{"customer.id": customerID, "isbn": isbn}.Wrap(err, "while fetching book")
     }
     // Returns ErrorNotFound{} if not exist
     author, err := r.fetchAuthorByBook(book)
     if err != nil {
-        return nil, errors.WithContext{"book": book}.Wrap(err, "while fetching author")
+        return nil, errors.WithFields{"customer.id" customerID, "book": book}.Wrap(err, "while fetching author")
     }
     return author, nil
 }
 ```
+Now you can easily search your structured logs for errors related to a customer.
 
 You should continue to create and inspect error types
 ```go
@@ -108,12 +109,12 @@ func main() {
 }
 ```
 
-## Context for concrete error types
-If the error implements the `errors.HasContext` interface the context can be retrieved
+## Fields for concrete error types
+If the error implements the `errors.HasFields` interface the context can be retrieved
 ```go
-context, ok := err.(errors.HasContext)
+fields, ok := err.(errors.HasFields)
 if ok {
-    fmt.Println(context.Context())
+    fmt.Println(fields.Fields())
 }
 ```
 
@@ -122,8 +123,8 @@ This makes it easy for error types to provide their context information.
 type ErrBookNotFound struct {
     ISBN string
 }
-// Implements the `HasContext` interface
-func (e *ErrBookNotFound) func Context() map[string]interface{} {
+// Implements the `HasFields` interface
+func (e *ErrBookNotFound) func Fields() map[string]interface{} {
     return map[string]interface{}{
         "isbn": e.ISBN,
     }
@@ -173,7 +174,7 @@ func OpenWithError(fileName string) error {
     _, err := ioutil.ReadFile(fileName)
     if err != nil {
             // pass the filename up via the error context
-            return errors.WithContext{
+            return errors.WithFields{
                 "file": fileName,
             }.Wrap(err, "read failed")
     }
@@ -199,7 +200,7 @@ func main() {
         //
         // excText: "read failed"
         // excValue: "read failed: open /tmp/non-existant.file: no such file or directory"
-        // excType: "*errors.WithContext"
+        // excType: "*errors.WithFields"
         // filename: "/src/to/main.go"
         // funcName: "main()"
         // lineno: 25

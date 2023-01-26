@@ -136,7 +136,7 @@ func TestFormatWithStack(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			out := fmt.Sprintf(tt.format, tt.err)
-			t.Log(out)
+			//t.Log(out)
 
 			for _, line := range tt.want {
 				assert.Contains(t, out, line)

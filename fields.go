@@ -12,7 +12,7 @@ import (
 
 // HasFields Implement this interface to pass along unstructured context to the logger
 type HasFields interface {
-	Context() map[string]interface{}
+	Fields() map[string]interface{}
 }
 
 // HasFormat True if the interface has the format method (from fmt package)
@@ -26,14 +26,14 @@ type WithFields map[string]interface{}
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is call, and the format specifier.
 // If err is nil, Wrapf returns nil.
-func (c WithFields) Wrapf(err error, format string, args ...interface{}) error {
+func (f WithFields) Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
 	}
 	return &withFields{
 		stack:   callstack.New(1),
-		context: c,
-		cause:   err,
+		fields:  f,
+		wrapped: err,
 		msg:     fmt.Sprintf(format, args...),
 	}
 }
@@ -41,45 +41,45 @@ func (c WithFields) Wrapf(err error, format string, args ...interface{}) error {
 // Wrap returns an error annotating err with a stack trace
 // at the point Wrap is called, and the supplied message.
 // If err is nil, Wrap returns nil.
-func (c WithFields) Wrap(err error, msg string) error {
+func (f WithFields) Wrap(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
 	return &withFields{
 		stack:   callstack.New(1),
-		context: c,
-		cause:   err,
+		fields:  f,
+		wrapped: err,
 		msg:     msg,
 	}
 }
 
-func (c WithFields) Error(msg string) error {
+func (f WithFields) Error(msg string) error {
 	return &withFields{
 		stack:   callstack.New(1),
-		context: c,
-		cause:   errors.New(msg),
+		fields:  f,
+		wrapped: errors.New(msg),
 		msg:     "",
 	}
 }
 
-func (c WithFields) Errorf(format string, args ...interface{}) error {
+func (f WithFields) Errorf(format string, args ...interface{}) error {
 	return &withFields{
 		stack:   callstack.New(1),
-		context: c,
-		cause:   fmt.Errorf(format, args...),
+		fields:  f,
+		wrapped: fmt.Errorf(format, args...),
 		msg:     "",
 	}
 }
 
 type withFields struct {
-	context WithFields
+	fields  WithFields
 	msg     string
-	cause   error
+	wrapped error
 	stack   *callstack.CallStack
 }
 
 func (c *withFields) Unwrap() error {
-	return c.cause
+	return c.wrapped
 }
 
 func (c *withFields) Is(target error) bool {
@@ -89,27 +89,27 @@ func (c *withFields) Is(target error) bool {
 
 func (c *withFields) Error() string {
 	if c.msg == "" {
-		return c.cause.Error()
+		return c.wrapped.Error()
 	}
-	return c.msg + ": " + c.cause.Error()
+	return c.msg + ": " + c.wrapped.Error()
 }
 
 func (c *withFields) StackTrace() callstack.StackTrace {
-	if child, ok := c.cause.(callstack.HasStackTrace); ok {
+	if child, ok := c.wrapped.(callstack.HasStackTrace); ok {
 		return child.StackTrace()
 	}
 	return c.stack.StackTrace()
 }
 
-func (c *withFields) Context() map[string]interface{} {
-	result := make(map[string]interface{}, len(c.context))
-	for key, value := range c.context {
+func (c *withFields) Fields() map[string]interface{} {
+	result := make(map[string]interface{}, len(c.fields))
+	for key, value := range c.fields {
 		result[key] = value
 	}
 
 	// downstream context values have precedence as they are closer to the cause
-	if child, ok := c.cause.(HasFields); ok {
-		downstream := child.Context()
+	if child, ok := c.wrapped.(HasFields); ok {
+		downstream := child.Fields()
 		if downstream == nil {
 			return result
 		}
@@ -138,7 +138,7 @@ func (c *withFields) FormatFields() string {
 	var buf bytes.Buffer
 	var count int
 
-	for key, value := range c.context {
+	for key, value := range c.fields {
 		if count > 0 {
 			buf.WriteString(", ")
 		}
@@ -156,7 +156,7 @@ func ToMap(err error) map[string]interface{} {
 	if child, ok := err.(HasFields); ok {
 		// Append the context map to our results
 		result = make(map[string]interface{})
-		for key, value := range child.Context() {
+		for key, value := range child.Fields() {
 			result[key] = value
 		}
 	}
@@ -178,7 +178,7 @@ func ToLogrus(err error) logrus.Fields {
 		trace := cast.StackTrace()
 		caller := callstack.GetLastFrame(trace)
 		result["excFuncName"] = caller.Func
-		result["excLineno"] = caller.LineNo
+		result["excLineNum"] = caller.LineNo
 		result["excFileName"] = caller.File
 	}
 
@@ -189,7 +189,7 @@ func ToLogrus(err error) logrus.Fields {
 	}
 
 	// Append the context map to our results
-	for key, value := range child.Context() {
+	for key, value := range child.Fields() {
 		result[key] = value
 	}
 	return result

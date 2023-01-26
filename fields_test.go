@@ -43,6 +43,7 @@ func TestWithFields(t *testing.T) {
 
 	t.Run("Extract as Logrus fields", func(t *testing.T) {
 		f := errors.ToLogrus(wrap)
+
 		require.NotNil(t, f)
 		b := bytes.Buffer{}
 		logrus.SetOutput(&b)
@@ -52,7 +53,15 @@ func TestWithFields(t *testing.T) {
 		assert.Contains(t, b.String(), `excValue="message: query error"`)
 		assert.Contains(t, b.String(), `excType="*errors_test.TestError"`)
 		assert.Contains(t, b.String(), "key1=value1")
-		// TODO: Should include stack trace information file.go:123 and function name
+		assert.Contains(t, b.String(), "excFuncName=errors_test.TestWithFields")
+		assert.Regexp(t, "excFileName=.*/fields_test.go", b.String())
+		assert.Regexp(t, "excLineNum=\\d*", b.String())
+
+		// OUTPUT: time="2023-01-26T10:37:48-05:00" level=info msg="test logrus fields"
+		//   excFileName=errors/fields_test.go excFuncName=errors_test.TestWithFields
+		//   excLineNum=18 excType="*errors_test.TestError" excValue="message: query error" key1=value1
+		t.Log(b.String())
+
 		assert.Equal(t, "message: query error", wrap.Error())
 		out := fmt.Sprintf("%+v", wrap)
 		assert.True(t, strings.Contains(out, `message: query error (key1=value1)`))
