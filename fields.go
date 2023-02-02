@@ -177,7 +177,7 @@ func ToMap(err error) map[string]interface{} {
 
 	// Find any errors with StackTrace information if available
 	var stack callstack.HasStackTrace
-	if errors.As(err, &stack) {
+	if Last(err, &stack) {
 		trace := stack.StackTrace()
 		caller := callstack.GetLastFrame(trace)
 		result["excFuncName"] = caller.Func
@@ -206,7 +206,7 @@ func ToLogrus(err error) logrus.Fields {
 
 	// Find any errors with StackTrace information if available
 	var stack callstack.HasStackTrace
-	if errors.As(err, &stack) {
+	if Last(err, &stack) {
 		trace := stack.StackTrace()
 		caller := callstack.GetLastFrame(trace)
 		result["excFuncName"] = caller.Func
