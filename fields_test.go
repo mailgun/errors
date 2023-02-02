@@ -135,6 +135,30 @@ func TestNestedWithFields(t *testing.T) {
 	})
 }
 
+func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
+	err := errors.New("this is an error")
+	// Should report this line number for the stack in the chain
+	err = errors.Wrap(err, "last")
+	err = errors.Wrap(err, "second")
+	err = errors.Wrap(err, "first")
+
+	t.Run("ToMap() finds the last stack in the chain", func(t *testing.T) {
+		m := errors.ToMap(err)
+		assert.NotNil(t, m)
+		assert.Equal(t, 141, m["excLineNum"])
+	})
+
+	t.Run("ToLogrus() finds the last stack in the chain", func(t *testing.T) {
+		f := errors.ToLogrus(err)
+		require.NotNil(t, f)
+		b := bytes.Buffer{}
+		logrus.SetOutput(&b)
+		logrus.WithFields(f).Info("test logrus fields")
+		logrus.SetOutput(os.Stdout)
+		assert.Contains(t, b.String(), "excLineNum=141")
+	})
+}
+
 func TestWithFieldsFmtDirectives(t *testing.T) {
 	t.Run("Wrap() with a message", func(t *testing.T) {
 		err := errors.WithFields{"key1": "value1"}.Wrap(errors.New("error"), "shit happened")
