@@ -14,6 +14,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
+	err := errors.New("this is an error")
+
+	// --- Should report this line number for the stack in the chain ---
+	err = errors.Wrap(err, "last")
+	// ----------------------------------
+
+	err = errors.Wrap(err, "second")
+	err = errors.Wrap(err, "first")
+
+	t.Run("ToMap() finds the last stack in the chain", func(t *testing.T) {
+		m := errors.ToMap(err)
+		assert.NotNil(t, m)
+		assert.Equal(t, 21, m["excLineNum"])
+	})
+
+	t.Run("ToLogrus() finds the last stack in the chain", func(t *testing.T) {
+		f := errors.ToLogrus(err)
+		require.NotNil(t, f)
+		b := bytes.Buffer{}
+		logrus.SetOutput(&b)
+		logrus.WithFields(f).Info("test logrus fields")
+		logrus.SetOutput(os.Stdout)
+		assert.Contains(t, b.String(), "excLineNum=21")
+	})
+}
+
 func TestWithFields(t *testing.T) {
 	err := &ErrTest{Msg: "query error"}
 	wrap := errors.WithFields{"key1": "value1"}.Wrap(err, "message")
@@ -78,7 +105,7 @@ func TestWithFields(t *testing.T) {
 	t.Run("ToLogrus() should extract the error with StackTrace() from the chain", func(t *testing.T) {
 		// This error has no  StackTrace() method
 		err := fmt.Errorf("I have no stack trace: %w", wrap)
-		// ToLogrus() should find the wrapped error in the chain that does have StackTrace() method.
+		// ToLogrus() should find the wrapped error in the chain that has the StackTrace() method.
 		f := errors.ToLogrus(err)
 		// t.Log(f)
 
@@ -87,7 +114,8 @@ func TestWithFields(t *testing.T) {
 		assert.Equal(t, "I have no stack trace: message: query error", f["excValue"])
 		assert.Equal(t, "errors_test.TestWithFields", f["excFuncName"])
 		assert.Equal(t, "*errors.withFields", f["excType"])
-		assert.Len(t, f, 5)
+		assert.Equal(t, "value1", f["key1"])
+		assert.Len(t, f, 6)
 
 		require.NotNil(t, f)
 	})
@@ -113,7 +141,9 @@ func TestErrorf(t *testing.T) {
 func TestNestedWithFields(t *testing.T) {
 	err := errors.New("this is an error")
 	err = errors.WithFields{"key1": "value1"}.Wrap(err, "message")
+	err = errors.Wrap(err, "second")
 	err = errors.WithFields{"key2": "value2"}.Wrap(err, "message")
+	err = errors.Wrap(err, "first")
 
 	t.Run("ToMap() collects all values from nested fields", func(t *testing.T) {
 		m := errors.ToMap(err)
@@ -132,30 +162,6 @@ func TestNestedWithFields(t *testing.T) {
 		assert.Contains(t, b.String(), "test logrus fields")
 		assert.Contains(t, b.String(), "key1=value1")
 		assert.Contains(t, b.String(), "key2=value2")
-	})
-}
-
-func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
-	err := errors.New("this is an error")
-	// Should report this line number for the stack in the chain
-	err = errors.Wrap(err, "last")
-	err = errors.Wrap(err, "second")
-	err = errors.Wrap(err, "first")
-
-	t.Run("ToMap() finds the last stack in the chain", func(t *testing.T) {
-		m := errors.ToMap(err)
-		assert.NotNil(t, m)
-		assert.Equal(t, 141, m["excLineNum"])
-	})
-
-	t.Run("ToLogrus() finds the last stack in the chain", func(t *testing.T) {
-		f := errors.ToLogrus(err)
-		require.NotNil(t, f)
-		b := bytes.Buffer{}
-		logrus.SetOutput(&b)
-		logrus.WithFields(f).Info("test logrus fields")
-		logrus.SetOutput(os.Stdout)
-		assert.Contains(t, b.String(), "excLineNum=141")
 	})
 }
 

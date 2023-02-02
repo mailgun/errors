@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -35,6 +36,12 @@ func (w *withStack) Fields() map[string]interface{} {
 	if child, ok := w.error.(HasFields); ok {
 		return child.Fields()
 	}
+
+	var f HasFields
+	if errors.As(w.error, &f) {
+		return f.Fields()
+	}
+
 	return nil
 }
 

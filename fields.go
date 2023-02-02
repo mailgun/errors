@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// HasFields Implement this interface to pass along unstructured context to the logger
+// HasFields Implement this interface to pass along unstructured context to the logger.
+// It is the responsibility of Fields() implementation to unwrap the error chain and
+// collect all errors that have `Fields()` defined.
 type HasFields interface {
 	Fields() map[string]interface{}
 }
@@ -121,14 +123,14 @@ func (c *withFields) Fields() map[string]interface{} {
 		result[key] = value
 	}
 
-	// downstream context values have precedence as they are closer to the cause
-	if child, ok := c.wrapped.(HasFields); ok {
-		downstream := child.Fields()
-		if downstream == nil {
+	// child fields have precedence as they are closer to the cause
+	var f HasFields
+	if errors.As(c.wrapped, &f) {
+		child := f.Fields()
+		if child == nil {
 			return result
 		}
-
-		for key, value := range downstream {
+		for key, value := range child {
 			result[key] = value
 		}
 	}
@@ -167,8 +169,8 @@ func (c *withFields) FormatFields() string {
 	return buf.String()
 }
 
-// ToMap Returns the context for the underlying error as map[string]interface{}
-// If no context is available returns nil
+// ToMap Returns the fields for the underlying error as map[string]interface{}
+// If no fields are available returns nil
 func ToMap(err error) map[string]interface{} {
 	result := map[string]interface{}{
 		"excValue": err.Error(),
@@ -185,9 +187,10 @@ func ToMap(err error) map[string]interface{} {
 		result["excFileName"] = caller.File
 	}
 
-	if child, ok := err.(HasFields); ok {
-		// Append the context map to our results
-		for key, value := range child.Fields() {
+	// Search the error chain for fields
+	var f HasFields
+	if errors.As(err, &f) {
+		for key, value := range f.Fields() {
 			result[key] = value
 		}
 	}
@@ -214,15 +217,12 @@ func ToLogrus(err error) logrus.Fields {
 		result["excFileName"] = caller.File
 	}
 
-	// Add context if provided
-	child, ok := err.(HasFields)
-	if !ok {
-		return result
-	}
-
-	// Append the context map to our results
-	for key, value := range child.Fields() {
-		result[key] = value
+	// Search the error chain for fields
+	var f HasFields
+	if errors.As(err, &f) {
+		for key, value := range f.Fields() {
+			result[key] = value
+		}
 	}
 	return result
 }
