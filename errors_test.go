@@ -24,7 +24,7 @@ func (e *ErrTest) Is(target error) bool {
 
 type ErrHasFields struct {
 	M string
-	F map[string]interface{}
+	F map[string]any
 }
 
 func (e *ErrHasFields) Error() string {
@@ -36,7 +36,7 @@ func (e *ErrHasFields) Is(target error) bool {
 	return ok
 }
 
-func (e *ErrHasFields) Fields() map[string]interface{} {
+func (e *ErrHasFields) HasFields() map[string]any {
 	return e.F
 }
 

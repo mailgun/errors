@@ -190,7 +190,7 @@ func TestWithFieldsErrorValue(t *testing.T) {
 }
 
 func TestHasFields(t *testing.T) {
-	hf := &ErrHasFields{M: "error", F: map[string]interface{}{"file": "errors.go"}}
+	hf := &ErrHasFields{M: "error", F: map[string]any{"file": "errors.go"}}
 	err := errors.WithFields{"key1": "value1"}.Wrap(hf, "")
 	m := errors.ToMap(err)
 	require.NotNil(t, m)

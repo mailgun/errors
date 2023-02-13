@@ -12,9 +12,9 @@ import (
 
 // HasFields Implement this interface to pass along unstructured context to the logger.
 // It is the responsibility of Fields() implementation to unwrap the error chain and
-// collect all errors that have `Fields()` defined.
+// collect all errors that have `HasFields()` defined.
 type HasFields interface {
-	Fields() map[string]interface{}
+	HasFields() map[string]any
 }
 
 // HasFormat True if the interface has the format method (from fmt package)
@@ -23,12 +23,12 @@ type HasFormat interface {
 }
 
 // WithFields Creates errors that conform to the `HasFields` interface
-type WithFields map[string]interface{}
+type WithFields map[string]any
 
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is call, and the format specifier.
 // If err is nil, Wrapf returns nil.
-func (f WithFields) Wrapf(err error, format string, args ...interface{}) error {
+func (f WithFields) Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (f WithFields) Error(msg string) error {
 	}
 }
 
-func (f WithFields) Errorf(format string, args ...interface{}) error {
+func (f WithFields) Errorf(format string, args ...any) error {
 	return &withFields{
 		stack:   callstack.New(1),
 		fields:  f,
@@ -117,8 +117,8 @@ func (c *withFields) StackTrace() callstack.StackTrace {
 	return c.stack.StackTrace()
 }
 
-func (c *withFields) Fields() map[string]interface{} {
-	result := make(map[string]interface{}, len(c.fields))
+func (c *withFields) HasFields() map[string]any {
+	result := make(map[string]any, len(c.fields))
 	for key, value := range c.fields {
 		result[key] = value
 	}
@@ -126,7 +126,7 @@ func (c *withFields) Fields() map[string]interface{} {
 	// child fields have precedence as they are closer to the cause
 	var f HasFields
 	if errors.As(c.wrapped, &f) {
-		child := f.Fields()
+		child := f.HasFields()
 		if child == nil {
 			return result
 		}
@@ -169,10 +169,10 @@ func (c *withFields) FormatFields() string {
 	return buf.String()
 }
 
-// ToMap Returns the fields for the underlying error as map[string]interface{}
+// ToMap Returns the fields for the underlying error as map[string]any
 // If no fields are available returns nil
-func ToMap(err error) map[string]interface{} {
-	result := map[string]interface{}{
+func ToMap(err error) map[string]any {
+	result := map[string]any{
 		"excValue": err.Error(),
 		"excType":  fmt.Sprintf("%T", Unwrap(err)),
 	}
@@ -190,7 +190,7 @@ func ToMap(err error) map[string]interface{} {
 	// Search the error chain for fields
 	var f HasFields
 	if errors.As(err, &f) {
-		for key, value := range f.Fields() {
+		for key, value := range f.HasFields() {
 			result[key] = value
 		}
 	}
@@ -220,7 +220,7 @@ func ToLogrus(err error) logrus.Fields {
 	// Search the error chain for fields
 	var f HasFields
 	if errors.As(err, &f) {
-		for key, value := range f.Fields() {
+		for key, value := range f.HasFields() {
 			result[key] = value
 		}
 	}

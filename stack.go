@@ -32,14 +32,14 @@ func (w *withStack) Is(target error) bool {
 	return ok
 }
 
-func (w *withStack) Fields() map[string]interface{} {
+func (w *withStack) HasFields() map[string]any {
 	if child, ok := w.error.(HasFields); ok {
-		return child.Fields()
+		return child.HasFields()
 	}
 
 	var f HasFields
 	if errors.As(w.error, &f) {
-		return f.Fields()
+		return f.HasFields()
 	}
 
 	return nil
