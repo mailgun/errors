@@ -198,6 +198,18 @@ func TestHasFields(t *testing.T) {
 	assert.Equal(t, "errors.go", m["file"])
 }
 
+func TestWrapFields(t *testing.T) {
+	err := errors.New("last")
+	err = errors.Wrap(err, "second")
+	err = errors.WrapFields(err, "fields", map[string]any{"key1": "value1"})
+	err = errors.Wrap(err, "first")
+
+	m := errors.ToMap(err)
+	require.NotNil(t, m)
+	assert.Equal(t, "value1", m["key1"])
+	assert.Equal(t, "first: fields: second: last", err.Error())
+}
+
 func TestWithFieldsError(t *testing.T) {
 	t.Run("WithFields.Error() should create a new error", func(t *testing.T) {
 		err := errors.WithFields{"key1": "value1"}.Error("error")
