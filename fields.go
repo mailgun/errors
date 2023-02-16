@@ -22,17 +22,17 @@ type HasFormat interface {
 	Format(st fmt.State, verb rune)
 }
 
-// WithFields Creates errors that conform to the `HasFields` interface
-type WithFields map[string]any
+// Fields Creates errors that conform to the `HasFields` interface
+type Fields map[string]any
 
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is call, and the format specifier.
 // If err is nil, Wrapf returns nil.
-func (f WithFields) Wrapf(err error, format string, args ...any) error {
+func (f Fields) Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
-	return &withFields{
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: err,
@@ -44,7 +44,7 @@ func WrapFields(err error, msg string, f map[string]any) error {
 	if err == nil {
 		return nil
 	}
-	return &withFields{
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: err,
@@ -55,11 +55,11 @@ func WrapFields(err error, msg string, f map[string]any) error {
 // Wrap returns an error annotating err with a stack trace
 // at the point Wrap is called, and the supplied message.
 // If err is nil, Wrap returns nil.
-func (f WithFields) Wrap(err error, msg string) error {
+func (f Fields) Wrap(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
-	return &withFields{
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: err,
@@ -70,19 +70,19 @@ func (f WithFields) Wrap(err error, msg string) error {
 // WithStack returns an error annotating err with a stack trace
 // at the point WithStack is called
 // If err is nil, WithStack returns nil.
-func (f WithFields) WithStack(err error) error {
+func (f Fields) WithStack(err error) error {
 	if err == nil {
 		return nil
 	}
-	return &withFields{
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: err,
 	}
 }
 
-func (f WithFields) Error(msg string) error {
-	return &withFields{
+func (f Fields) Error(msg string) error {
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: errors.New(msg),
@@ -90,8 +90,8 @@ func (f WithFields) Error(msg string) error {
 	}
 }
 
-func (f WithFields) Errorf(format string, args ...any) error {
-	return &withFields{
+func (f Fields) Errorf(format string, args ...any) error {
+	return &fields{
 		stack:   callstack.New(1),
 		fields:  f,
 		wrapped: fmt.Errorf(format, args...),
@@ -99,37 +99,37 @@ func (f WithFields) Errorf(format string, args ...any) error {
 	}
 }
 
-type withFields struct {
-	fields  WithFields
+type fields struct {
+	fields  Fields
 	msg     string
 	wrapped error
 	stack   *callstack.CallStack
 }
 
-func (c *withFields) Unwrap() error {
+func (c *fields) Unwrap() error {
 	return c.wrapped
 }
 
-func (c *withFields) Is(target error) bool {
-	_, ok := target.(*withFields)
+func (c *fields) Is(target error) bool {
+	_, ok := target.(*fields)
 	return ok
 }
 
-func (c *withFields) Error() string {
+func (c *fields) Error() string {
 	if c.msg == NoMsg {
 		return c.wrapped.Error()
 	}
 	return c.msg + ": " + c.wrapped.Error()
 }
 
-func (c *withFields) StackTrace() callstack.StackTrace {
+func (c *fields) StackTrace() callstack.StackTrace {
 	if child, ok := c.wrapped.(callstack.HasStackTrace); ok {
 		return child.StackTrace()
 	}
 	return c.stack.StackTrace()
 }
 
-func (c *withFields) HasFields() map[string]any {
+func (c *fields) HasFields() map[string]any {
 	result := make(map[string]any, len(c.fields))
 	for key, value := range c.fields {
 		result[key] = value
@@ -149,7 +149,7 @@ func (c *withFields) HasFields() map[string]any {
 	return result
 }
 
-func (c *withFields) Format(s fmt.State, verb rune) {
+func (c *fields) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -167,7 +167,7 @@ func (c *withFields) Format(s fmt.State, verb rune) {
 	}
 }
 
-func (c *withFields) FormatFields() string {
+func (c *fields) FormatFields() string {
 	var buf bytes.Buffer
 	var count int
 
@@ -212,7 +212,7 @@ func ToMap(err error) map[string]any {
 // ToLogrus Returns the context and stacktrace information for the underlying error as logrus.Fields{}
 // returns empty logrus.Fields{} if err has no context or no stacktrace
 //
-//	logrus.WithFields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
+//	logrus.Fields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
 func ToLogrus(err error) logrus.Fields {
 	result := logrus.Fields{
 		"excValue": err.Error(),
