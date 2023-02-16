@@ -93,7 +93,7 @@ func TestFields(t *testing.T) {
 		assert.Regexp(t, "excLineNum=\\d*", b.String())
 
 		// OUTPUT: time="2023-01-26T10:37:48-05:00" level=info msg="test logrus fields"
-		//   excFileName=errors/fields_test.go excFuncName=errors_test.TestWithFields
+		//   excFileName=errors/fields_test.go excFuncName=errors_test.TestFields
 		//   excLineNum=18 excType="*errors_test.ErrTest" excValue="message: query error" key1=value1
 		// t.Log(b.String())
 
@@ -138,7 +138,7 @@ func TestErrorf(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s", err), "wrapped: message: this is an error")
 }
 
-func TestNestedWithFields(t *testing.T) {
+func TestNestedFields(t *testing.T) {
 	err := errors.New("this is an error")
 	err = errors.Fields{"key1": "value1"}.Wrap(err, "message")
 	err = errors.Wrap(err, "second")
@@ -165,7 +165,7 @@ func TestNestedWithFields(t *testing.T) {
 	})
 }
 
-func TestWithFieldsFmtDirectives(t *testing.T) {
+func TestFieldsFmtDirectives(t *testing.T) {
 	t.Run("Wrap() with a message", func(t *testing.T) {
 		err := errors.Fields{"key1": "value1"}.Wrap(errors.New("error"), "shit happened")
 		assert.Equal(t, "shit happened: error", fmt.Sprintf("%s", err))
@@ -183,7 +183,7 @@ func TestWithFieldsFmtDirectives(t *testing.T) {
 	})
 }
 
-func TestWithFieldsErrorValue(t *testing.T) {
+func TestFieldsErrorValue(t *testing.T) {
 	err := io.EOF
 	wrap := errors.Fields{"key1": "value1"}.Wrap(err, "message")
 	assert.True(t, errors.Is(wrap, io.EOF))
@@ -201,7 +201,7 @@ func TestHasFields(t *testing.T) {
 func TestWrapFields(t *testing.T) {
 	err := errors.New("last")
 	err = errors.Wrap(err, "second")
-	err = errors.WrapFields(err, "fields", map[string]any{"key1": "value1"})
+	err = errors.WrapFields(err, errors.Fields{"key1": "value1"}, "fields")
 	err = errors.Wrap(err, "first")
 
 	m := errors.ToMap(err)
@@ -210,7 +210,19 @@ func TestWrapFields(t *testing.T) {
 	assert.Equal(t, "first: fields: second: last", err.Error())
 }
 
-func TestWithFieldsError(t *testing.T) {
+func TestWrapFieldsf(t *testing.T) {
+	err := errors.New("last")
+	err = errors.Wrap(err, "second")
+	err = errors.WrapFieldsf(err, errors.Fields{"key1": "value1"}, "fields '%d'", 42)
+	err = errors.Wrap(err, "first")
+
+	m := errors.ToMap(err)
+	require.NotNil(t, m)
+	assert.Equal(t, "value1", m["key1"])
+	assert.Equal(t, "first: fields '42': second: last", err.Error())
+}
+
+func TestFieldsError(t *testing.T) {
 	t.Run("Fields.Error() should create a new error", func(t *testing.T) {
 		err := errors.Fields{"key1": "value1"}.Error("error")
 		m := errors.ToMap(err)
@@ -228,7 +240,7 @@ func TestWithFieldsError(t *testing.T) {
 	})
 }
 
-func TestWithFieldsWithStack(t *testing.T) {
+func TestFieldsWithStack(t *testing.T) {
 	err := errors.Fields{"key1": "value1"}.WithStack(io.EOF)
 	m := errors.ToMap(err)
 	require.NotNil(t, m)
