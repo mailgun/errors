@@ -40,15 +40,29 @@ func (f Fields) Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-func WrapFields(err error, msg string, f map[string]any) error {
+// WrapFields returns a new error wrapping the provided error with fields and a message.
+func WrapFields(err error, f Fields, msg string) error {
 	if err == nil {
 		return nil
 	}
 	return &fields{
 		stack:   callstack.New(1),
-		fields:  f,
 		wrapped: err,
 		msg:     msg,
+		fields:  f,
+	}
+}
+
+// WrapFieldsf is identical to WrapFields but with optional formatting
+func WrapFieldsf(err error, f Fields, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	return &fields{
+		msg:     fmt.Sprintf(format, args...),
+		stack:   callstack.New(1),
+		wrapped: err,
+		fields:  f,
 	}
 }
 
