@@ -14,10 +14,10 @@ import (
 // NOTE: Line numbers matter to this test
 func TestWrapWithFieldsAndWithStack(t *testing.T) {
 	// NOTE: The stack from StackTrace() should report this line
-	// not the WithFields line below
+	// not the Fields line below
 	s := errors.WithStack(&ErrTest{Msg: "error"})
 
-	err := errors.WithFields{"key1": "value1"}.Wrap(s, "context")
+	err := errors.Fields{"key1": "value1"}.Wrap(s, "context")
 
 	myErr := &ErrTest{}
 	assert.True(t, errors.Is(err, &ErrTest{}))
