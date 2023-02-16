@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+// NoMsg is a small indicator in the code that "" is intentional and there
+// is no message include with the Wrap()
+const NoMsg = ""
+
 // Import all the standard errors functions as a convenience.
 
 // Is reports whether any error in err's chain matches target.

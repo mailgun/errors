@@ -47,7 +47,7 @@ func (e *wrappedError) Is(target error) bool {
 }
 
 func (e *wrappedError) Error() string {
-	if e.msg == "" {
+	if e.msg == NoMsg {
 		return e.wrapped.Error()
 	}
 	return e.msg + ": " + e.wrapped.Error()

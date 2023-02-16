@@ -40,6 +40,18 @@ func (f WithFields) Wrapf(err error, format string, args ...any) error {
 	}
 }
 
+func WrapFields(err error, msg string, f map[string]any) error {
+	if err == nil {
+		return nil
+	}
+	return &withFields{
+		stack:   callstack.New(1),
+		fields:  f,
+		wrapped: err,
+		msg:     msg,
+	}
+}
+
 // Wrap returns an error annotating err with a stack trace
 // at the point Wrap is called, and the supplied message.
 // If err is nil, Wrap returns nil.
@@ -104,7 +116,7 @@ func (c *withFields) Is(target error) bool {
 }
 
 func (c *withFields) Error() string {
-	if c.msg == "" {
+	if c.msg == NoMsg {
 		return c.wrapped.Error()
 	}
 	return c.msg + ": " + c.wrapped.Error()
@@ -141,7 +153,7 @@ func (c *withFields) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			if c.msg == "" {
+			if c.msg == NoMsg {
 				_, _ = fmt.Fprintf(s, "%+v (%s)", c.Unwrap(), c.FormatFields())
 				return
 			}
