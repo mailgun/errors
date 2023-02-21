@@ -9,7 +9,6 @@ includes a stack trace so logging can report the exact location where the error 
 *Includes `Wrapf()` and `Wrap()` variants*
 ```go
 return errors.Wrapf(err, "while reading '%s'", fileName)
-return errors.Wrapf(err, "while reading '%s'", fileName)
 ```
 #### errors.Stack()
 Identical to `errors.Wrap()` but you don't need a message, just a stack trace to where the error occurred.
