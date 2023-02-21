@@ -81,10 +81,9 @@ func (f Fields) Wrap(err error, msg string) error {
 	}
 }
 
-// WithStack returns an error annotating err with a stack trace
-// at the point WithStack is called
-// If err is nil, WithStack returns nil.
-func (f Fields) WithStack(err error) error {
+// Stack returns an error annotating err with a stack trace
+// at the point Stack is called. If err is nil, Stack returns nil.
+func (f Fields) Stack(err error) error {
 	if err == nil {
 		return nil
 	}

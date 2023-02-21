@@ -12,10 +12,10 @@ import (
 )
 
 // NOTE: Line numbers matter to this test
-func TestWrapWithFieldsAndWithStack(t *testing.T) {
+func TestWrapWithFieldsAndStack(t *testing.T) {
 	// NOTE: The stack from StackTrace() should report this line
 	// not the Fields line below
-	s := errors.WithStack(&ErrTest{Msg: "error"})
+	s := errors.Stack(&ErrTest{Msg: "error"})
 
 	err := errors.Fields{"key1": "value1"}.Wrap(s, "context")
 
@@ -33,12 +33,12 @@ func TestWrapWithFieldsAndWithStack(t *testing.T) {
 	trace := stack.StackTrace()
 	caller := callstack.GetLastFrame(trace)
 	assert.Contains(t, fmt.Sprintf("%+v", stack), "errors/stack_test.go:18")
-	assert.Equal(t, "errors_test.TestWrapWithFieldsAndWithStack", caller.Func)
+	assert.Equal(t, "errors_test.TestWrapWithFieldsAndStack", caller.Func)
 	assert.Equal(t, 18, caller.LineNo)
 }
 
-func TestWithStack(t *testing.T) {
-	err := errors.WithStack(io.EOF)
+func TestStack(t *testing.T) {
+	err := errors.Stack(io.EOF)
 
 	var files []string
 	var funcs []string
@@ -49,11 +49,11 @@ func TestWithStack(t *testing.T) {
 		}
 	}
 	assert.True(t, linq.From(files).Contains("stack_test.go"))
-	assert.True(t, linq.From(funcs).Contains("TestWithStack"), funcs)
+	assert.True(t, linq.From(funcs).Contains("TestStack"), funcs)
 }
 
-func TestWithStackWrapped(t *testing.T) {
-	err := errors.WithStack(&ErrTest{Msg: "query error"})
+func TestStackWrapped(t *testing.T) {
+	err := errors.Stack(&ErrTest{Msg: "query error"})
 	err = fmt.Errorf("wrapped: %w", err)
 
 	// Can use errors.Is() from std `errors` package
@@ -65,71 +65,71 @@ func TestWithStackWrapped(t *testing.T) {
 	assert.Equal(t, myErr.Msg, "query error")
 }
 
-func TestFormatWithStack(t *testing.T) {
+func TestFormatStack(t *testing.T) {
 	tests := []struct {
 		err    error
 		Name   string
 		format string
 		want   []string
 	}{{
-		Name:   "withStack() string",
-		err:    errors.WithStack(io.EOF),
+		Name:   "stack() string",
+		err:    errors.Stack(io.EOF),
 		format: "%s",
 		want:   []string{"EOF"},
 	}, {
-		Name:   "withStack() value",
-		err:    errors.WithStack(io.EOF),
+		Name:   "stack() value",
+		err:    errors.Stack(io.EOF),
 		format: "%v",
 		want:   []string{"EOF"},
 	}, {
-		Name:   "withStack() value plus",
-		err:    errors.WithStack(io.EOF),
+		Name:   "stack() value plus",
+		err:    errors.Stack(io.EOF),
 		format: "%+v",
 		want: []string{
 			"EOF",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
 		},
 	}, {
-		Name:   "withStack(errors.New()) string",
-		err:    errors.WithStack(errors.New("error")),
+		Name:   "stack(errors.New()) string",
+		err:    errors.Stack(errors.New("error")),
 		format: "%s",
 		want:   []string{"error"},
 	}, {
-		Name:   "withStack(errors.New()) value",
-		err:    errors.WithStack(errors.New("error")),
+		Name:   "stack(errors.New()) value",
+		err:    errors.Stack(errors.New("error")),
 		format: "%v",
 		want:   []string{"error"},
 	}, {
-		Name:   "withStack(errors.New()) value plus",
-		err:    errors.WithStack(errors.New("error")),
+		Name:   "stack(errors.New()) value plus",
+		err:    errors.Stack(errors.New("error")),
 		format: "%+v",
 		want: []string{
 			"error",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
 			"errors/stack_test.go",
 		},
 	}, {
-		Name:   "errors.WithStack(errors.WithStack(io.EOF)) value plus",
-		err:    errors.WithStack(errors.WithStack(io.EOF)),
+		Name:   "errors.Stack(errors.Stack(io.EOF)) value plus",
+		err:    errors.Stack(errors.Stack(io.EOF)),
 		format: "%+v",
 		want: []string{"EOF",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
 		},
 	}, {
 		Name:   "deeply nested stack",
-		err:    errors.WithStack(errors.WithStack(fmt.Errorf("message: %w", io.EOF))),
+		err:    errors.Stack(errors.Stack(fmt.Errorf("message: %w", io.EOF))),
 		format: "%+v",
 		want: []string{"EOF",
 			"message",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
 		},
 	}, {
-		Name:   "WithStack with fmt.Errorf()",
-		err:    errors.WithStack(fmt.Errorf("error%d", 1)),
+		Name:   "Stack with fmt.Errorf()",
+		err:    errors.Stack(fmt.Errorf("error%d", 1)),
 		format: "%+v",
 		want: []string{"error1",
-			"github.com/mailgun/errors_test.TestFormatWithStack",
+			"github.com/mailgun/errors_test.TestFormatStack",
 		},
 	}}
 

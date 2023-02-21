@@ -37,6 +37,7 @@ func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
 		logrus.SetOutput(&b)
 		logrus.WithFields(f).Info("test logrus fields")
 		logrus.SetOutput(os.Stdout)
+		fmt.Printf("%s\n", b.String())
 		assert.Contains(t, b.String(), "excLineNum=21")
 	})
 }
@@ -240,8 +241,8 @@ func TestFieldsError(t *testing.T) {
 	})
 }
 
-func TestFieldsWithStack(t *testing.T) {
-	err := errors.Fields{"key1": "value1"}.WithStack(io.EOF)
+func TestFieldsStack(t *testing.T) {
+	err := errors.Fields{"key1": "value1"}.Stack(io.EOF)
 	m := errors.ToMap(err)
 	require.NotNil(t, m)
 	assert.Equal(t, "value1", m["key1"])
