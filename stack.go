@@ -8,31 +8,31 @@ import (
 	"github.com/mailgun/errors/callstack"
 )
 
-// WithStack annotates err with a stack trace at the point WithStack was called.
-// If err is nil, WithStack returns nil.
-func WithStack(err error) error {
+// Stack annotates err with a stack trace at the point Stack was called.
+// If err is nil, Stack returns nil.
+func Stack(err error) error {
 	if err == nil {
 		return nil
 	}
-	return &withStack{
+	return &stack{
 		err,
 		callstack.New(1),
 	}
 }
 
-type withStack struct {
+type stack struct {
 	error
 	*callstack.CallStack
 }
 
-func (w *withStack) Unwrap() error { return w.error }
+func (w *stack) Unwrap() error { return w.error }
 
-func (w *withStack) Is(target error) bool {
-	_, ok := target.(*withStack)
+func (w *stack) Is(target error) bool {
+	_, ok := target.(*stack)
 	return ok
 }
 
-func (w *withStack) HasFields() map[string]any {
+func (w *stack) HasFields() map[string]any {
 	if child, ok := w.error.(HasFields); ok {
 		return child.HasFields()
 	}
@@ -45,7 +45,7 @@ func (w *withStack) HasFields() map[string]any {
 	return nil
 }
 
-func (w *withStack) Format(s fmt.State, verb rune) {
+func (w *stack) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {

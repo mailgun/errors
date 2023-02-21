@@ -1,23 +1,61 @@
 # Errors
-A modern error handling package to add additional structured fields to errors. This allows you to keep the
-[only handle errors once rule](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) while not losing context where the error occurred.
+An error handling package to add additional structured fields to errors. This package helps you keep the
+[only handle errors once rule](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully)
+while not losing context where the error occurred.
 
-* `errors.Wrap(err, "while reading")` includes a stack trace so logging can report the exact location where
-  the error occurred. *You can also call `Wrapf()`*
-* `errors.WithStack(err)` for when you don't need a message, just a stack trace to where the error occurred.
-* `errors.WithFields{"fileName": fileName}.Wrap(err, "while reading")` Attach additional fields to the error and a stack
-  trace to give structured logging as much context to the error as possible. *You can also call `Wrapf()`*
-* `errors.WithFields{"fileName": fileName}.WithStack(err)` for when you don't need a message, just a stack
-  trace and some fields attached.
-* `errors.WithFields{"fileName": fileName}.Error("while reading")` when you want to create a string error with
-  some fields attached. *You can also call `Errorf()`*
+## Usage
+#### errors.Wrap()
+includes a stack trace so logging can report the exact location where the error occurred. 
+*Includes `Wrapf()` and `Wrap()` variants*
+```go
+return errors.Wrapf(err, "while reading '%s'", fileName)
+return errors.Wrapf(err, "while reading '%s'", fileName)
+```
+#### errors.Stack()
+Identical to `errors.Wrap()` but you don't need a message, just a stack trace to where the error occurred.
+```go
+return errors.Stack(err)
+```
+#### errors.Fields{}
+Attach additional fields to the error and a stack trace to give structured logging as much context
+to the error as possible. *Includes `Wrap()`, `Wrapf()`, `Stack()`, `Error()` and `Errorf()` variants*
+```go
+return errors.Fields{"fileName": fileName}.Wrapf(err, "while reading '%s'", fileName)
+return errors.Fields{"fileName": fileName}.Stack(err)
+return errors.Fields{"fileName": fileName}.Error("while reading")
+```
+#### errors.WrapFields()
+Works just like `errors.Fields{}` but allows collecting and passing around fields independent of the point of error 
+creation. In functions with many exit points this can result in cleaner less cluttered looking code.
+```go
+fields := map[string]any{
+    "domain.id": domainId,
+}
+err, accountID := account.GetByDomain(domainID)
+if err != nil {
+    // Error only includes `domain.id`
+    return errors.WrapFields(err, fields, "during call to account.GetByDomain()")
+}
+fields["account.id"] = accountID
 
-### Extract structured data from wrapped errors
-Convenience functions to extract all stack and field information from the error.
-* `errors.ToLogrus() logrus.Fields`
-* `errors.ToMap() map[string]interface{}`
-
-### Example
+err, disabled := domain.Disable(accountID, domainID)
+if err != nil {
+    // Error now includes `account.id` and `domain.id`
+    return errors.WrapFields(err, fields, "during call to domain.Disable()")
+}
+```
+#### errors.Last()
+Works just like `errors.As()` except it returns the last error in the chain instead of the first. In
+this way you can discover the target which is closest to where the error occurred.
+```go
+// Returns the last error in the chain that has a stack trace attached
+var last callstack.HasStackTrace
+if errors.Last(err, &last)) {
+	fmt.Printf("Error occurred here: %+v", last.StackTrace())
+}
+```
+#### errors.ToMap()
+A convenience function to extract all stack and field information from the error.
 ```go
 err := io.EOF
 err = errors.WithFields{"fileName": "file.txt"}.Wrap(err, "while reading")
@@ -33,6 +71,24 @@ fmt.Printf("%#v\n", m)
 //   "fileName":"file.txt"
 //  }
 ```
+#### errors.ToLogrus()
+A convenience function to extract all stack and field information from the error in a form
+appropriate for logrus.
+```go
+err := io.EOF
+err = errors.WithFields{"fileName": "file.txt"}.Wrap(err, "while reading")
+f := errors.ToLogrus(err)
+logrus.WithFields(f).Info("test logrus fields")
+// OUTPUT
+// time="2023-02-20T19:11:05-06:00"
+//   level=info
+//   msg="test logrus fields"
+//   excFileName=/path/to/wrap_test.go
+//   excFuncName=my_package.ReadAFile
+//   excLineNum=21
+//   excType="*errors.wrappedError"
+//   excValue="while reading: EOF"
+```
 
 ## Convenience to std error library methods
 Provides pass through access to the standard `errors.Is()`, `errors.As()`, `errors.Unwrap()` so you don't need to
@@ -46,23 +102,6 @@ searchable fields.
 ## Perfect for passing additional information to http handler middleware
 If you have custom http middleware for handling unhandled errors, this is an excellent way
 to easily pass additional information about the request up to the error handling middleware.
-
-## Adding structured fields to an error
-Wraps the original error while providing structured field data
-```go
-_, err := ioutil.ReadFile(fileName)
-if err != nil {
-        return errors.WithFields{"file": fileName}.Wrap(err, "while reading")
-}
-```
-
-## Retrieving the structured fields
-Using `errors.WithFields{}` stores the provided fields for later retrieval by upstream code or structured logging
-systems
-```go
-// Pass to logrus as structured logging
-logrus.WithFields(errors.ToLogrus(err)).Error("open file error")
-```
 
 ## Support for standard golang introspection functions
 Errors wrapped with `errors.WithFields{}` are compatible with standard library introspection functions `errors.Unwrap()`,
