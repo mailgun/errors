@@ -2,6 +2,7 @@ package errors
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -33,6 +34,18 @@ func New(text string) error {
 // Otherwise, Unwrap returns nil.
 func Unwrap(err error) error {
 	return errors.Unwrap(err)
+}
+
+// Errorf formats according to a format specifier and returns the string as a
+// value that satisfies error.
+//
+// If the format specifier includes a %w verb with an error operand,
+// the returned error will implement an Unwrap method returning the operand. It is
+// invalid to include more than one %w verb or to supply it with an operand
+// that does not implement the error interface. The %w verb is otherwise
+// a synonym for %v.
+func Errorf(format string, a ...any) error {
+	return fmt.Errorf(format, a...)
 }
 
 // Last finds the last error in err's chain that matches target, and if one is found, sets
