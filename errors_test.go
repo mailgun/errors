@@ -1,7 +1,6 @@
 package errors_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/mailgun/errors"
@@ -45,7 +44,7 @@ func TestLast(t *testing.T) {
 	err = errors.Wrap(err, "last")
 	err = errors.Wrap(err, "second")
 	err = errors.Wrap(err, "first")
-	err = fmt.Errorf("wrapped: %w", err)
+	err = errors.Errorf("wrapped: %w", err)
 
 	// errors.As() returns the "first" error in the chain with a stack trace
 	var first callstack.HasStackTrace
