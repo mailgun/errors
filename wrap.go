@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -28,6 +29,17 @@ func Wrapf(err error, format string, a ...any) error {
 		stack:   callstack.New(1),
 		wrapped: err,
 		msg:     fmt.Sprintf(format, a...),
+	}
+}
+
+// Cause returns the last error in the stack of wrapped errors.
+func Cause(err error) error {
+	for {
+		wrapped := errors.Unwrap(err)
+		if wrapped == nil {
+			return err
+		}
+		err = wrapped
 	}
 }
 

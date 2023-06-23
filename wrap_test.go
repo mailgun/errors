@@ -124,3 +124,12 @@ func TestWrapErrorValue(t *testing.T) {
 	wrap := errors.Wrap(err, "message")
 	assert.True(t, errors.Is(wrap, io.EOF))
 }
+
+func TestCause(t *testing.T) {
+	err := errors.Errorf("error: %w", errors.Wrap(errors.Wrap(errors.New("the cause"), "wrap 2"), "wrap 1"))
+	cause := errors.Cause(err)
+	require.Error(t, err)
+	require.Error(t, cause)
+	assert.Equal(t, "error: wrap 1: wrap 2: the cause", err.Error())
+	assert.Equal(t, "the cause", cause.Error())
+}
