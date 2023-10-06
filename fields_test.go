@@ -248,3 +248,9 @@ func TestFieldsStack(t *testing.T) {
 	assert.Equal(t, "value1", m["key1"])
 	assert.Equal(t, io.EOF.Error(), err.Error())
 }
+
+// Ensure errors.Fields returns an error that is compatible with `github.com/pkf/errors.Cause()`
+func TestFieldsCause(t *testing.T) {
+	err := errors.Fields{"key1": "value1"}.Wrap(io.EOF, "message")
+	assert.Equal(t, io.EOF, pkgErrorCause(err))
+}
