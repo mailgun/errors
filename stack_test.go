@@ -144,3 +144,27 @@ func TestFormatStack(t *testing.T) {
 		})
 	}
 }
+
+// Ensure errors.Stack() returns an that works with `github.com/pkf/errors.Cause()`
+func TestStackCause(t *testing.T) {
+	err := errors.Stack(io.EOF)
+	assert.Equal(t, io.EOF, pkgErrorCause(err))
+}
+
+// pkgErrorCause is identical to github.com/pkg/errors.Cause()
+// Much of our existing code uses that function and depends
+// on our errors conforming to the old style Causer interface.
+func pkgErrorCause(err error) error {
+	type causer interface {
+		Cause() error
+	}
+
+	for err != nil {
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+	}
+	return err
+}

@@ -128,6 +128,13 @@ func (c *fields) Is(target error) bool {
 	return ok
 }
 
+// Cause returns the wrapped error which was the original
+// cause of the issue. We only support this because some code
+// depends on github.com/pkg/errors.Cause() returning the cause
+// of the error.
+// deprecated use error.Is() or error.As() instead
+func (c *fields) Cause() error { return c.wrapped }
+
 func (c *fields) Error() string {
 	if c.msg == NoMsg {
 		return c.wrapped.Error()

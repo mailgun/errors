@@ -133,3 +133,9 @@ func TestCause(t *testing.T) {
 	assert.Equal(t, "error: wrap 1: wrap 2: the cause", err.Error())
 	assert.Equal(t, "the cause", cause.Error())
 }
+
+// Ensure errors.wrappedError returns an error that is compatible with `github.com/pkf/errors.Cause()`
+func TestWrappedCause(t *testing.T) {
+	err := errors.Wrap(io.EOF, "message")
+	assert.Equal(t, io.EOF, pkgErrorCause(err))
+}
