@@ -1,6 +1,6 @@
 module github.com/mailgun/errors
 
-go 1.19
+go 1.21
 
 require (
 	github.com/ahmetb/go-linq v3.0.0+incompatible
