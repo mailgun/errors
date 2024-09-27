@@ -234,6 +234,10 @@ func ToMap(err error) map[string]any {
 //
 //	logrus.Fields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
 func ToLogrus(err error) map[string]any {
+	if err == nil {
+		return nil
+	}
+
 	result := map[string]any{
 		"excValue": err.Error(),
 		"excType":  fmt.Sprintf("%T", Unwrap(err)),
