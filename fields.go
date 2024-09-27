@@ -230,7 +230,6 @@ func ToMap(err error) map[string]any {
 
 // ToLogrus Returns the context and stacktrace information for the underlying error
 // that could be used as logrus.Fields
-// returns empty value if err has no context or no stacktrace
 //
 //	logrus.Fields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
 func ToLogrus(err error) map[string]any {
