@@ -33,7 +33,7 @@ func TestWrapWithFieldsAndStack(t *testing.T) {
 	caller := callstack.GetLastFrame(trace)
 	assert.Contains(t, fmt.Sprintf("%+v", stack), "errors/stack_test.go:18")
 	assert.Equal(t, "errors_test.TestWrapWithFieldsAndStack", caller.Func)
-	assert.Equal(t, 18, caller.LineNo)
+	assert.Equal(t, 17, caller.LineNo)
 }
 
 func TestStack(t *testing.T) {
