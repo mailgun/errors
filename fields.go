@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/mailgun/errors/callstack"
-	"github.com/sirupsen/logrus"
 )
 
 // HasFields Implement this interface to pass along unstructured context to the logger.
@@ -229,12 +228,13 @@ func ToMap(err error) map[string]any {
 	return result
 }
 
-// ToLogrus Returns the context and stacktrace information for the underlying error as logrus.Fields{}
-// returns empty logrus.Fields{} if err has no context or no stacktrace
+// ToLogrus Returns the context and stacktrace information for the underlying error
+// that could be used as logrus.Fields
+// returns empty value if err has no context or no stacktrace
 //
 //	logrus.Fields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
-func ToLogrus(err error) logrus.Fields {
-	result := logrus.Fields{
+func ToLogrus(err error) map[string]any {
+	result := map[string]any{
 		"excValue": err.Error(),
 		"excType":  fmt.Sprintf("%T", Unwrap(err)),
 	}
