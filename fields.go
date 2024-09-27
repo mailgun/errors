@@ -203,6 +203,10 @@ func (c *fields) FormatFields() string {
 // ToMap Returns the fields for the underlying error as map[string]any
 // If no fields are available returns nil
 func ToMap(err error) map[string]any {
+	if err == nil {
+		return nil
+	}
+
 	result := map[string]any{
 		"excValue": err.Error(),
 		"excType":  fmt.Sprintf("%T", Unwrap(err)),
@@ -233,31 +237,5 @@ func ToMap(err error) map[string]any {
 //
 //	logrus.Fields(errors.ToLogrus(err)).WithField("tid", 1).Error(err)
 func ToLogrus(err error) map[string]any {
-	if err == nil {
-		return nil
-	}
-
-	result := map[string]any{
-		"excValue": err.Error(),
-		"excType":  fmt.Sprintf("%T", Unwrap(err)),
-	}
-
-	// Find any errors with StackTrace information if available
-	var stack callstack.HasStackTrace
-	if Last(err, &stack) {
-		trace := stack.StackTrace()
-		caller := callstack.GetLastFrame(trace)
-		result["excFuncName"] = caller.Func
-		result["excLineNum"] = caller.LineNo
-		result["excFileName"] = caller.File
-	}
-
-	// Search the error chain for fields
-	var f HasFields
-	if errors.As(err, &f) {
-		for key, value := range f.HasFields() {
-			result[key] = value
-		}
-	}
-	return result
+	return ToMap(err)
 }
