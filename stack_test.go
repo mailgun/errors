@@ -5,7 +5,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ahmetb/go-linq"
 	"github.com/mailgun/errors"
 	"github.com/mailgun/errors/callstack"
 	"github.com/stretchr/testify/assert"
@@ -32,9 +31,9 @@ func TestWrapWithFieldsAndStack(t *testing.T) {
 
 	trace := stack.StackTrace()
 	caller := callstack.GetLastFrame(trace)
-	assert.Contains(t, fmt.Sprintf("%+v", stack), "errors/stack_test.go:18")
+	assert.Contains(t, fmt.Sprintf("%+v", stack), "errors/stack_test.go:17")
 	assert.Equal(t, "errors_test.TestWrapWithFieldsAndStack", caller.Func)
-	assert.Equal(t, 18, caller.LineNo)
+	assert.Equal(t, 17, caller.LineNo)
 }
 
 func TestStack(t *testing.T) {
@@ -48,8 +47,8 @@ func TestStack(t *testing.T) {
 			funcs = append(funcs, fmt.Sprintf("%n", frame))
 		}
 	}
-	assert.True(t, linq.From(files).Contains("stack_test.go"))
-	assert.True(t, linq.From(funcs).Contains("TestStack"), funcs)
+	assert.Contains(t, files, "stack_test.go")
+	assert.Contains(t, funcs, "TestStack")
 }
 
 func TestStackWrapped(t *testing.T) {
