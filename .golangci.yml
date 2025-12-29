@@ -22,15 +22,15 @@ linters:
         - (io.ReadCloser).Close
     gocritic:
       disabled-checks:
-        - dupImport
-        - whyNoLint
-        - appendAssign
-        - commentedOutCode
+        # - dupImport
+        # - whyNoLint
+        # - appendAssign
+        # - commentedOutCode
       enabled-tags:
         - diagnostic
         - experimental
         - opinionated
-        # - performance
+        - performance
         - style
     gomodguard:
       blocked:
@@ -46,7 +46,6 @@ linters:
               reason: Deprecated
     govet:
       disable:
-        # - shadow
         - fieldalignment
       enable-all: true
     staticcheck:
@@ -59,18 +58,6 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
-    rules:
-      - linters:
-          - gosec
-          - noctx
-        path: _test\.go$
-      - path: _test\.go$
-        text: 'unnamedResult:'
-      - linters:
-          - gosec
-        path: .*mxresolv.*
-      - path: (.+)\.go$
-        text: SA1019
     paths:
       - third_party$
       - builtin$
