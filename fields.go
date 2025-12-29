@@ -123,15 +123,14 @@ func (c *fields) Unwrap() error {
 }
 
 func (c *fields) Is(target error) bool {
-	_, ok := target.(*fields)
-	return ok
+	return errors.Is(c.wrapped, target)
 }
 
 // Cause returns the wrapped error which was the original
 // cause of the issue. We only support this because some code
 // depends on github.com/pkg/errors.Cause() returning the cause
 // of the error.
-// Deprecated: use error.Is() or error.As() instead
+// Deprecated: use errors.Is() or errors.As() instead
 func (c *fields) Cause() error { return c.wrapped }
 
 func (c *fields) Error() string {
