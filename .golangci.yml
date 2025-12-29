@@ -6,14 +6,20 @@ linters:
   enable:
     - bodyclose
     - errcheck
+    - errorlint # Wrapping
     - gocritic
     - gomodguard
     - gosec
     - govet
     - ineffassign
+    - makezero
+    - misspell
+    - nestif # Deep nesting avoidance
     - noctx
     - nolintlint
+    - prealloc
     - staticcheck
+    - testifylint # Helps catch expected/got reversals
     - unused
   settings:
     errcheck:
@@ -32,6 +38,10 @@ linters:
         - opinionated
         - performance
         - style
+    testifylint:
+      disable:
+        - error-nil # prefer explicit checks instead for error contract adherence
+        - error-is-as # prefer explicit checks instead for error contract adherence
     gomodguard:
       blocked:
         modules:

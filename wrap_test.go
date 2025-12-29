@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/mailgun/errors"
@@ -59,9 +58,9 @@ func TestWrap(t *testing.T) {
 	t.Run("Can use errors.As() from std `errors` package", func(t *testing.T) {
 		myErr := &ErrTest{}
 		assert.True(t, errors.As(wrap, &myErr))
-		assert.Equal(t, myErr.Msg, "query error")
+		assert.Equal(t, "query error", myErr.Msg)
 		assert.True(t, errors.As(wrapf, &myErr))
-		assert.Equal(t, myErr.Msg, "query error")
+		assert.Equal(t, "query error", myErr.Msg)
 	})
 
 	t.Run("Extract as Logrus fields", func(t *testing.T) {
@@ -89,7 +88,7 @@ func TestWrap(t *testing.T) {
 
 		assert.Equal(t, "message: query error", wrap.Error())
 		out := fmt.Sprintf("%+v", wrap)
-		assert.True(t, strings.Contains(out, `message: query error`))
+		assert.Contains(t, out, `message: query error`)
 	})
 
 	t.Run("Wrap() should return nil, if error is nil", func(t *testing.T) {
