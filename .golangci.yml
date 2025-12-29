@@ -68,6 +68,10 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+        path: '(.+)_test\.go'
     paths:
       - third_party$
       - builtin$

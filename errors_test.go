@@ -82,3 +82,62 @@ func (e *ErrHasFields) Is(target error) bool {
 func (e *ErrHasFields) HasFields() map[string]any {
 	return e.F
 }
+
+// Benchmarks for comparison purposes
+
+/*
+go test -bench=. -benchmem -count=5 -run="^$" ./...
+goos: darwin
+goarch: arm64
+pkg: github.com/mailgun/errors
+cpu: Apple M3 Pro
+BenchmarkErrors-12    	 4825278	       221.8 ns/op	     328 B/op	       3 allocs/op
+BenchmarkErrors-12    	 5548051	       216.4 ns/op	     328 B/op	       3 allocs/op
+BenchmarkErrors-12    	 5548090	       215.5 ns/op	     328 B/op	       3 allocs/op
+BenchmarkErrors-12    	 5548306	       215.7 ns/op	     328 B/op	       3 allocs/op
+BenchmarkErrors-12    	 5557860	       215.8 ns/op	     328 B/op	       3 allocs/op
+*/
+func BenchmarkErrorsWrap(b *testing.B) {
+	base := errors.New("init")
+	for b.Loop() {
+		errors.Wrap(base, "loop")
+	}
+}
+
+/*
+go test -bench=. -benchmem -count=5 -run="^$" ./...
+goos: darwin
+goarch: arm64
+pkg: github.com/mailgun/errors
+cpu: Apple M3 Pro
+BenchmarkErrorsWrapf-12    	 4733302	       252.8 ns/op	     336 B/op	       4 allocs/op
+BenchmarkErrorsWrapf-12    	 4750388	       252.1 ns/op	     336 B/op	       4 allocs/op
+BenchmarkErrorsWrapf-12    	 4720851	       251.7 ns/op	     336 B/op	       4 allocs/op
+BenchmarkErrorsWrapf-12    	 4740823	       252.3 ns/op	     336 B/op	       4 allocs/op
+BenchmarkErrorsWrapf-12    	 4753670	       254.1 ns/op	     336 B/op	       4 allocs/op
+*/
+func BenchmarkErrorsWrapf(b *testing.B) {
+	base := errors.New("init")
+	for b.Loop() {
+		errors.Wrapf(base, "loop %s", "two")
+	}
+}
+
+/*
+go test -bench=. -benchmem -count=5 -run="^$" ./...
+goos: darwin
+goarch: arm64
+pkg: github.com/mailgun/errors
+cpu: Apple M3 Pro
+BenchmarkErrorsStack-12    	 5713897	       210.4 ns/op	     304 B/op	       3 allocs/op
+BenchmarkErrorsStack-12    	 5677599	       210.1 ns/op	     304 B/op	       3 allocs/op
+BenchmarkErrorsStack-12    	 5701461	       210.1 ns/op	     304 B/op	       3 allocs/op
+BenchmarkErrorsStack-12    	 5655940	       210.1 ns/op	     304 B/op	       3 allocs/op
+BenchmarkErrorsStack-12    	 5574022	       210.8 ns/op	     304 B/op	       3 allocs/op
+*/
+func BenchmarkErrorsStack(b *testing.B) {
+	base := errors.New("init")
+	for b.Loop() {
+		_ = errors.Stack(base)
+	}
+}
