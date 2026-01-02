@@ -27,11 +27,6 @@ linters:
         - (io.Closer).Close
         - (io.ReadCloser).Close
     gocritic:
-      # disabled-checks:
-        # - dupImport
-        # - whyNoLint
-        # - appendAssign
-        # - commentedOutCode
       enabled-tags:
         - diagnostic
         - experimental
