@@ -26,7 +26,7 @@ func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
 	t.Run("ToMap() finds the last stack in the chain", func(t *testing.T) {
 		m := errors.ToMap(err)
 		assert.NotNil(t, m)
-		assert.Equal(t, 21, m["excLineNum"])
+		assert.Equal(t, 20, m["excLineNum"])
 	})
 
 	t.Run("ToLogrus() finds the last stack in the chain", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
 		logrus.WithFields(f).Info("test logrus fields")
 		logrus.SetOutput(os.Stdout)
 		fmt.Printf("%s\n", b.String())
-		assert.Contains(t, b.String(), "excLineNum=21")
+		assert.Contains(t, b.String(), "excLineNum=20")
 	})
 }
 
