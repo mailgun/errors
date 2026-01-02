@@ -2,6 +2,7 @@ package errors_test
 
 import (
 	"bytes"
+	stderr "errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,6 +20,10 @@ func TestWrap(t *testing.T) {
 	assert.NotNil(t, wrap)
 	wrapf := errors.Wrapf(err, "message: %d", 1)
 	assert.NotNil(t, wrapf)
+
+	// Ensure consistency with stdlib
+	assert.True(t, stderr.Is(wrap, err))
+	assert.True(t, stderr.Is(wrapf, err))
 
 	t.Run("Wrap/Wrapf should return wrap the error", func(t *testing.T) {
 		assert.Equal(t, "message: query error", wrap.Error())
