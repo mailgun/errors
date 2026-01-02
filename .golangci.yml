@@ -26,8 +26,8 @@ linters:
       exclude-functions:
         - (io.Closer).Close
         - (io.ReadCloser).Close
-    gocritic:
-      disabled-checks:
+    # gocritic:
+      # disabled-checks:
         # - dupImport
         # - whyNoLint
         # - appendAssign
