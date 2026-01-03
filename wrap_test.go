@@ -2,10 +2,10 @@ package errors_test
 
 import (
 	"bytes"
+	stderr "errors"
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/mailgun/errors"
@@ -20,6 +20,10 @@ func TestWrap(t *testing.T) {
 	assert.NotNil(t, wrap)
 	wrapf := errors.Wrapf(err, "message: %d", 1)
 	assert.NotNil(t, wrapf)
+
+	// Ensure consistency with stdlib
+	assert.True(t, stderr.Is(wrap, err))
+	assert.True(t, stderr.Is(wrapf, err))
 
 	t.Run("Wrap/Wrapf should return wrap the error", func(t *testing.T) {
 		assert.Equal(t, "message: query error", wrap.Error())
@@ -59,9 +63,9 @@ func TestWrap(t *testing.T) {
 	t.Run("Can use errors.As() from std `errors` package", func(t *testing.T) {
 		myErr := &ErrTest{}
 		assert.True(t, errors.As(wrap, &myErr))
-		assert.Equal(t, myErr.Msg, "query error")
+		assert.Equal(t, "query error", myErr.Msg)
 		assert.True(t, errors.As(wrapf, &myErr))
-		assert.Equal(t, myErr.Msg, "query error")
+		assert.Equal(t, "query error", myErr.Msg)
 	})
 
 	t.Run("Extract as Logrus fields", func(t *testing.T) {
@@ -89,7 +93,7 @@ func TestWrap(t *testing.T) {
 
 		assert.Equal(t, "message: query error", wrap.Error())
 		out := fmt.Sprintf("%+v", wrap)
-		assert.True(t, strings.Contains(out, `message: query error`))
+		assert.Contains(t, out, `message: query error`)
 	})
 
 	t.Run("Wrap() should return nil, if error is nil", func(t *testing.T) {

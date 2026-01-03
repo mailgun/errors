@@ -21,7 +21,7 @@ func TestWrapWithFieldsAndStack(t *testing.T) {
 	myErr := &ErrTest{}
 	assert.True(t, errors.Is(err, &ErrTest{}))
 	assert.True(t, errors.As(err, &myErr))
-	assert.Equal(t, myErr.Msg, "error")
+	assert.Equal(t, "error", myErr.Msg)
 	assert.Equal(t, "context: error", err.Error())
 
 	// Extract the stack from the error chain
@@ -61,7 +61,7 @@ func TestStackWrapped(t *testing.T) {
 	// Can use errors.As() from std `errors` package
 	myErr := &ErrTest{}
 	assert.True(t, errors.As(err, &myErr))
-	assert.Equal(t, myErr.Msg, "query error")
+	assert.Equal(t, "query error", myErr.Msg)
 }
 
 func TestFormatStack(t *testing.T) {

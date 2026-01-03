@@ -36,6 +36,7 @@ func (w *stack) Is(target error) bool {
 // cause of the issue. We only support this because some code
 // depends on github.com/pkg/errors.Cause() returning the cause
 // of the error.
+//
 // Deprecated: use error.Is() or error.As() instead
 func (w *stack) Cause() error { return w.error }
 

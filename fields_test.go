@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/mailgun/errors"
@@ -27,7 +26,7 @@ func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
 	t.Run("ToMap() finds the last stack in the chain", func(t *testing.T) {
 		m := errors.ToMap(err)
 		assert.NotNil(t, m)
-		assert.Equal(t, 21, m["excLineNum"])
+		assert.Equal(t, 20, m["excLineNum"])
 	})
 
 	t.Run("ToLogrus() finds the last stack in the chain", func(t *testing.T) {
@@ -38,7 +37,7 @@ func TestToMapToLogrusFindsLastStackTrace(t *testing.T) {
 		logrus.WithFields(f).Info("test logrus fields")
 		logrus.SetOutput(os.Stdout)
 		fmt.Printf("%s\n", b.String())
-		assert.Contains(t, b.String(), "excLineNum=21")
+		assert.Contains(t, b.String(), "excLineNum=20")
 	})
 }
 
@@ -74,7 +73,7 @@ func TestFields(t *testing.T) {
 	t.Run("Can use errors.As() from std `errors` package", func(t *testing.T) {
 		myErr := &ErrTest{}
 		assert.True(t, errors.As(wrap, &myErr))
-		assert.Equal(t, myErr.Msg, "query error")
+		assert.Equal(t, "query error", myErr.Msg)
 	})
 
 	t.Run("Extract as Logrus fields", func(t *testing.T) {
@@ -100,7 +99,7 @@ func TestFields(t *testing.T) {
 
 		assert.Equal(t, "message: query error", wrap.Error())
 		out := fmt.Sprintf("%+v", wrap)
-		assert.True(t, strings.Contains(out, `message: query error (key1=value1)`))
+		assert.Contains(t, out, `message: query error (key1=value1)`)
 	})
 
 	t.Run("ToLogrus() should extract the error with StackTrace() from the chain", func(t *testing.T) {
@@ -136,7 +135,7 @@ func TestErrorf(t *testing.T) {
 	err := errors.New("this is an error")
 	wrap := errors.Fields{"key1": "value1", "key2": "value2"}.Wrap(err, "message")
 	err = fmt.Errorf("wrapped: %w", wrap)
-	assert.Equal(t, fmt.Sprintf("%s", err), "wrapped: message: this is an error")
+	assert.Equal(t, "wrapped: message: this is an error", fmt.Sprintf("%s", err))
 }
 
 func TestNestedFields(t *testing.T) {

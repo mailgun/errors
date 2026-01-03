@@ -1,5 +1,5 @@
 GOLANGCI_LINT = $(GOPATH)/bin/golangci-lint
-GOLANGCI_LINT_VERSION = v1.57.2
+GOLANGCI_LINT_VERSION = v2.6.2
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
@@ -10,4 +10,4 @@ $(GOLANGCI_LINT):
 
 .PHONY: test
 test:
-	go test -p 1 ./... -short -race -timeout 1m -count=1
+	go test -short -race -timeout 1m ./...
