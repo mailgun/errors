@@ -20,6 +20,13 @@ func Stack(err error) error {
 	}
 }
 
+// WithStack exactly the same as Stack. An alternative name for Stack is
+// provided to make this library a drop-in replacement for
+// github.com/pkg/errors and github.com/mailgun/holster/v4/errors.
+func WithStack(err error) error {
+	return Stack(err)
+}
+
 type stack struct {
 	error
 	*callstack.CallStack
