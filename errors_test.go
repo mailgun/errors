@@ -30,6 +30,22 @@ func TestAs(t *testing.T) {
 	assert.True(t, errors.As(top, &exp))
 }
 
+// Ensure errors.AsType remains stdlib compliant
+func TestAsType(t *testing.T) {
+	err := &ErrTest{Msg: "bottom"}
+	top := fmt.Errorf("top: %w", err)
+
+	var exp1 *ErrTest
+	exp1, ok1 := stderr.AsType[*ErrTest](top)
+	assert.True(t, ok1)
+	assert.Equal(t, "bottom", exp1.Error())
+
+	var exp2 *ErrTest
+	exp2, ok2 := errors.AsType[*ErrTest](top)
+	assert.True(t, ok2)
+	assert.Equal(t, "bottom", exp2.Error())
+}
+
 func TestLast(t *testing.T) {
 	err := errors.New("bottom")
 	err = errors.Wrap(err, "last")
