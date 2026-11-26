@@ -194,7 +194,7 @@ func (c *fields) FormatFields() string {
 		if count > 0 {
 			buf.WriteString(", ")
 		}
-		buf.WriteString(fmt.Sprintf("%+v=%+v", key, value))
+		_, _ = fmt.Fprintf(&buf, "%+v=%+v", key, value)
 		count++
 	}
 	return buf.String()

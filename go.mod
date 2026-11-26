@@ -1,6 +1,6 @@
 module github.com/mailgun/errors
 
-go 1.24
+go 1.26.11
 
 require (
 	github.com/sirupsen/logrus v1.9.3
